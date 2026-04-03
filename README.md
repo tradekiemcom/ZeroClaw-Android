@@ -26,3 +26,6 @@ Automated environment for the Galaxy Note 10+ using Termux.
 - **Battery & Process Shield**: Prevents Android 12+ from killing Termux processes.
 - **Admin Dashboard**: Lightweight monitoring and service control ([http://localhost:7643](http://localhost:7643)).
 - **Cloudflare Tunnel**: Remote access via your domain configured on Cloudflare.
+
+## 📘 Documentation
+For a deep dive into the architecture and how to use ZeroClaw on your phone, see the **[Technical Manual](docs/TECHNICAL_MANUAL.md)**.
