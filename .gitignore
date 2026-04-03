@@ -1,0 +1,28 @@
+# Environment & Secrets
+.env
+*.env.local
+tunnel/.env
+
+# Node
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Termux temp
+*.tmp
+*.swp
+*~
+
+# Editor
+.vscode/
+.idea/
+
+# Session data
+dashboard/sessions/

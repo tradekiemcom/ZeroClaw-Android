@@ -1,0 +1,37 @@
+# ============================================================
+# ZeroClaw Cloudflare Tunnel Configuration
+# Domain: claw.iz.life → localhost:7643
+# ============================================================
+
+# Tunnel will use token-based authentication (no cert needed)
+# Start with: cloudflared tunnel --no-autoupdate run --token $TUNNEL_TOKEN
+
+# This config is used when running with: cloudflared --config config.yml
+# For token-based tunnels, the dashboard-side config overrides ingress.
+# Keep this as the local reference and for named-tunnel fallback.
+
+tunnel: zeroclaw
+credentials-file: /data/data/com.termux/files/home/.cloudflared/credentials.json
+
+originRequest:
+  # Validate Host header to prevent host-header attacks
+  httpHostHeader: "claw.iz.life"
+  # No TLS to localhost (dashboard is HTTP)
+  noTLSVerify: true
+  # Connection timeouts
+  connectTimeout: 30s
+  # Keep-alive
+  keepAliveTimeout: 90s
+  # HTTP/2 support
+  http2Origin: true
+
+ingress:
+  # Dashboard — primary route
+  - hostname: claw.iz.life
+    service: http://localhost:7643
+    originRequest:
+      # CORS: restrict to claw.iz.life only
+      httpHostHeader: "claw.iz.life"
+
+  # Catch-all: reject unmatched requests
+  - service: http_status:404
