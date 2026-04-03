@@ -1,163 +1,110 @@
-# 🐾 ZeroClaw-Android: Cẩm Nang Sử Dụng Toàn Tập
+# 💼 ZeroClaw-Android: A.I Company Edition (Native Termux)
 
-Chào mừng bạn đến với **ZeroClaw-Android** - dự án biến một chiếc điện thoại Android cũ hoặc dư thừa thành một **Trạm điều khiển AI (AI Agent Hub)** hoạt động liên tục 24/7.
+Dự án này là phiên bản tùy biến tự động hóa để cài đặt trực tiếp **[zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)** xuống môi trường Android (Termux) mà **không cần Root**. Đồng thời quy hoạch hệ thống dưới dạng một **Công ty A.I (Multi-Agent)**.
 
 ---
 
-## 🌟 1. Giới Thiệu: ZeroClaw-Android Có Thể Làm Gì?
+## 🏢 1. Mô Hình "Công Ty A.I" Là Gì?
 
-### Tầm Nhìn Dự Án
-ZeroClaw-Android đưa sức mạnh của một AI Agent (chạy lõi ZeroClaw) lên môi trường Termux của thiết bị di động. Nó không chỉ là một chatbot, mà là một **"nhân viên ảo" có khả năng thực thi hành động**, quản lý tệp tin và duy trì tự động hóa một cách bền bỉ, tiết kiệm điện năng.
+Thay vì sử dụng một AI duy nhất, dự án này cung cấp lệnh `company-mgr` để khởi tạo các **Đặc Vụ (Agents)** đóng vai riêng biệt, giúp tăng tính chuyên môn khi thực thi nhiệm vụ:
 
-### Khả Năng Cốt Lõi (Dựa trên hệ sinh thái ZeroClaw)
-- **Tự động hóa & Kịch bản (Shell/Scripting)**: AI có toàn quyền (trong không gian Termux) để đọc/ghi tệp, phân tích log, chạy script (Python, Node.js, Bash). Đóng vai trò như một quản trị viên hệ thống thu nhỏ.
-- **Tương tác đa kênh**: Giao tiếp và nhận lệnh từ bạn thông qua **Telegram**, **Discord** hoặc trực tiếp qua **Terminal/SSH**.
-- **Web Research (Nghiên cứu Web)**: Khả năng tìm kiếm, trích xuất dữ liệu từ các trang web để tổng hợp báo cáo.
-- **Lên lịch tác vụ (Cron)**: Quản lý tiến độ và thực thi các công việc lặp đi lặp lại một cách tự động (ví dụ: quét tin tức mỗi sáng, thu thập dữ liệu giá coin).
-- **Hỗ trợ lập trình**: Sinh code, sửa lỗi, và thậm chí chạy thử nghiệm code trực tiếp trong môi trường của nó.
-- **Kiểm soát phần cứng di động**: Thông qua Termux:API, AI (nếu được cấp quyền và cung cấp skill) có thể đọc SMS, kiểm tra pin, lấy vị trí GPS, nhưng **không** trực tiếp thao tác (bấm/vuốt) trên màn hình ứng dụng Android khác.
+- **CEO**: Đặc vụ chỉ huy, phân tích vấn đề lớn và ra quyết định.
+- **Assistant**: Trợ lý cá nhân, tóm tắt thông tin và nhắc việc.
+- **R&D**: (Nghiên cứu & Phát triển) Viết code, debug, thao tác Terminal, chạy script.
+- **Marketing**: Sáng tạo nội dung, tổng hợp tin tức web.
+- **Trading/Financial**: Cập nhật xu hướng coin/forex, phân tích tin tức tài chính.
 
-### Khả Năng Mở Rộng
-- **Thêm kỹ năng (Skills)**: Bạn có thể cài thêm các Skill (dạng file Markdown hướng dẫn kết hợp Tool) để dạy AI làm kế toán, theo dõi chứng khoán, hay quản lý file.
-- **Tích hợp API bất kỳ**: Do nằm trong môi trường Linux, bạn dễ dàng cung cấp cho AI quyền gọi bất kỳ API nào (Notion, Google Sheets, Github...).
+*Lưu ý: ZeroClaw không có Dashboard Web đồ họa mặc định. Đây là một công cụ sức mạnh dành riêng cho Terminal (CLI).*
 
 ---
 
 ## 🎒 2. Khâu Chuẩn Bị Tối Quan Trọng
 
-Trước khi bắt đầu, bạn cần chuẩn bị đầy đủ phần cứng, phần mềm và các tài nguyên sau:
+### 2.1 Yêu Cầu Thiết Bị
+- **Android**: Bất kỳ thiết bị Android nào (Từ v8.0 trở lên, kiến trúc ARM64).
+- **RAM**: Tối thiểu 4GB. (Từ 6GB trở lên nếu muốn chạy mô hình nội bộ TinyLLM trên máy tính toán offline).
+- **ROM**: Trống ít nhất 1-2GB.
 
-### 2.1. Yêu cầu thiết bị Android
-*Dù dự án được tối ưu rất tốt cho Samsung Galaxy Note 10+, bạn hoàn toàn có thể chạy trên các thiết bị khác đáp ứng yêu cầu:*
-- **Kiến trúc CPU**: Android 64-bit (ARM64 / aarch64).
-- **Hệ điều hành**: Android 8.0 trở lên (Android 12+ nếu dùng dòng Samsung cần chú ý phần Shield).
-- **RAM**: Tối thiểu 4GB (Khuyến nghị 6GB-8GB để model xử lý mượt mà tác vụ phức tạp).
-- **Bộ nhớ trống**: Ít nhất 2GB.
+### 2.2 Phần Mềm (Tải từ F-Droid, KHÔNG dùng CH Play)
+Tuyệt đối không dùng bản trên CH Play vì chúng đã ngưng hỗ trợ. Phải cài từ [F-Droid](https://f-droid.org/):
+1. Cài app **Termux**.
+2. Cài app **Termux:API** (Để AI tương tác được với phần cứng/mạng).
 
-### 2.2. Phần mềm bắt buộc (Tải từ F-Droid, KHÔNG dùng CH Play)
-Các phiên bản Termux trên CH Play đã bị bỏ hoang và sẽ gây lỗi.
-1. Tải và cài đặt chợ ứng dụng mã nguồn mở **[F-Droid](https://f-droid.org/)**.
-2. Mở F-Droid, tìm và cài đặt **Termux** (phiên bản mới nhất).
-3. Mở F-Droid, tìm và cài đặt thêm **Termux:Boot** (Dùng để khởi động dịch vụ tự động khi bật máy).
-4. Mở F-Droid, tìm và cài đặt **Termux:API** (Giúp AI giao tiếp với phần cứng điện thoại).
-
-### 2.3. Các tài nguyên trực tuyến (API Keys & Tokens)
-Bạn cần đăng ký và lấy sẵn các mã sau lưu vào Ghi chú:
-1. **API Key Trí Tuệ Nhân Tạo**: (Bắt buộc) ZeroClaw cần "bộ não". Bạn có thể lấy API Key từ **Gemini**, **OpenAI**, **Anthropic**, hoặc **OpenRouter** (khuyến nghị OpenRouter vì có nhiều model rẻ/miễn phí).
-2. **Cloudflare Tunnel Token**: (Bắt buộc) Để truy cập Dashboard từ xa mà không cần mở port mạng.
-   - Đăng nhập [Cloudflare Zero Trust](https://one.dash.cloudflare.com/).
-   - Vào **Networks > Tunnels** -> `Create a Tunnel`.
-   - Đặt tên (VD: `zeroclaw-phone`). Setup môi trường Linux > ARM64.
-   - Chép lại đoạn mã dài (Token) sau chữ `cloudflared service install`.
-3. **Telegram Bot Token**: (Khuyến nghị) Dùng để chat với AI qua Telegram.
-   - Mở Telegram, chat với `@BotFather`, tạo Bot mới và lấy `HTTP API Token`.
+### 2.3 Cấu Hình API Keys
+Vì ZeroClaw cần "Lực lượng lao động" (Các LLM), bạn cần API Key của:
+- **Gemini / OpenAI / OpenRouter** (Hỗ trợ hầu hết mọi model hiện nay).
 
 ---
 
 ## 🛠 3. Các Bước Cài Đặt Chính Thức
 
-Cầm điện thoại lên, mở ứng dụng **Termux** vừa cài đặt và thực hiện:
-
-### Bước 1: Cấp quyền bộ nhớ
-Gõ lệnh sau và nhấn "Cho phép" khi có bảng thông báo hiện lên:
+### Bước 1: Mở ứng dụng Termux và cấp quyền bộ nhớ:
 ```bash
 termux-setup-storage
 ```
 
-### Bước 2: Tải mã nguồn ZeroClaw-Android
-Dán từng dòng lệnh sau vào Termux:
+### Bước 2: Tải trình cài đặt
 ```bash
-pkg update -y && pkg upgrade -y
-pkg install -y git
+pkg update -y && pkg install -y git
 git clone https://github.com/tradekiemcom/ZeroClaw-Android.git
 cd ZeroClaw-Android
 ```
 
-### Bước 3: Chạy trình cài đặt chính
+### Bước 3: Chạy trình thiết lập Công ty A.I
 ```bash
-chmod +x setup.sh && ./setup.sh
+chmod +x install.sh
+./install.sh
 ```
-*Script sẽ tự chạy 1 lúc để tải Node.js hệt thống, thiết lập Cloudflare Tunnel và cài đặt các dịch vụ nội bộ.*
-
-### Bước 4: Thiết lập "Khiên bảo vệ" (Process Shield) - RẤT QUAN TRỌNG
-*Dành cho máy Android 12+ (Đặc biệt là máy Samsung hay bị tắt ứng dụng ngầm).*
-1. Bật "Gỡ lỗi USB" (USB Debugging) trên điện thoại và cắm cáp kết nối vào máy tính (PC/Mac).
-2. Tải mã nguồn này về máy tính, mở Terminal/CMD tại thư mục đó và chạy:
-```bash
-chmod +x shield/setup-shield.sh
-./shield/setup-shield.sh
-```
-*(Nếu dùng Windows, bạn trích xuất các lệnh `adb shell...` trong file đó ra chạy thủ công).*
-Thao tác này loại bỏ tính năng sát thủ "Phantom Process Killer" của Android, giúp AI của bạn sống sót chạy ngầm 24/7.
+*Script sẽ kiểm tra phần cứng RAM, tự động tải bản ZeroClaw aarch64-linux-android gốc về, và cấu hình các phòng ban chức năng.*
 
 ---
 
-## ⚙️ 4. Thiết Lập Ban Đầu (Onboarding)
+## ⚙️ 4. Thiết Lập Tư Duy (Onboarding)
 
-Sau khi cài xong, ZeroClaw Core cần được cấu hình "bộ não".
-
-1. Trong Termux (vẫn ở thư mục ZeroClaw-Android), gõ lệnh:
-   ```bash
-   zeroclaw onboard
-   ```
-2. Cung cấp **Provider** (vd: `gemini` hoặc `openrouter`).
-3. Dán **API Key** bạn đã chuẩn bị.
-4. Chọn **Model** làm mặc định (vd: `gemini-1.5-pro` hoặc `gpt-4o`).
-
-Để kết nối với **Telegram** (Giúp bạn chat với hệ thống từ xa mà không cần vào Termux):
+Sau khi cài xong, bạn cần móc API Key vào cho các nhân viên A.I của mình hoạt động. Gõ:
 ```bash
-zeroclaw channel bind-telegram <TELEGRAM_BOT_TOKEN_CUAT_BAN>
-zeroclaw daemon # Lệnh này bắt đầu chạy ngầm hệ thống nghe lệnh từ Telegram
+zeroclaw onboard
+```
+Làm theo màn hình để chọn Nhà cung cấp (Vd: gemini) và dán API Key.
+
+*(Tính Năng Mới)*: Nếu thiết bị bạn **có RAM > 4GB** và bạn **không có API Key**, ZeroClaw có thể tự động dự phòng và tải một mô hình **TinyLLM (LlamaCPP)** từ bộ xử lý nội bộ. *(Lưu ý: xử lý bằng chip điện thoại sẽ khá chậm)*.
+
+---
+
+## 👔 5. Hướng Dẫn Điều Hành Công Ty A.I
+
+Bây giờ bạn là Chủ tịch (Founder). Hãy mở Termux lên và gọi các nhân sự bằng lệnh CLI mới: `company-mgr`
+
+### Giao việc một lần (One-shot)
+```bash
+company-mgr marketing -m "Viết ngay cho tôi một kịch bản tiktok về AI"
+company-mgr rd -m "Tạo và chạy một script python kiểm tra ip mạng hiện tại"
+```
+
+### Triệu tập họp (Interactive Chat)
+Bạn muốn chat trực tiếp dài hạn với Trưởng phòng Trading?
+```bash
+company-mgr trading
+```
+*(Hệ thống sẽ mở giao diện chat. Bạn cứ gõ tiếng Việt tự nhiên hỏi xu hướng giá Bitcoin)*.
+
+### Làm sao để quản lý giám sát tiến độ?
+ZeroClaw có trình lên lịch (Cron) cực kỳ xịn để AI tự làm việc mỗi ngày.
+```bash
+zeroclaw cron add "0 8 * * *" "company-mgr trading -m 'Phân tích tin tức báo chí hôm nay và gửi báo cáo'"
 ```
 
 ---
 
-## 📡 5. Kết Nối & Giám Sát Qua Bảng Điều Khiển (Dashboard)
-
-Dự án có đi kèm một **Web Dashboard** siêu nhẹ để bạn giám sát sức khoẻ thiết bị.
-
-### Cách cấu hình Cloudflare Tunnel
-1. Cấu hình file `.env`:
+## 📱 6. Kết Nối Telegram Để Điều Khiển Từ Xa
+Thao tác trên màn hình nhỏ rất mệt. Bạn có thể kết nối ZeroClaw với Telegram để chat với "Nhân viên" qua tin nhắn:
+1. Tạo Bot Telegram qua @BotFather và lấy Token.
+2. Ép kênh Telegram:
    ```bash
-   nano tunnel/.env
+   zeroclaw channel bind-telegram <TOKEN_CUA_BAN>
    ```
-   Thay `your-cloudflare-tunnel-token-here` bằng **Token** lấy ở Mục 2.3. Lưu lại (Ctrl+O, Enter, Ctrl+X).
-2. Khởi động toàn bộ dịch vụ phụ trợ:
+3. Chạy Daemon nền:
    ```bash
-   ./zeroclaw.sh start
+   zeroclaw daemon
    ```
-
-### Truy cập Giám sát
-- **Tại nhà (Cùng WiFi)**: Mở trình duyệt web gõ `http://<IP_dien_thoai_thuộc_mang_LAN>:7643`
-- **Từ xa (Internet)**: Vào Cloudflare Dashboard, gán một tên miền (Public Hostname) trỏ về `localhost:7643`. Nhập tên miền đó vào trình duyệt.
-
-**Chức Năng Của Dashboard**: 
-- Xem Uptime, RAM (để biết máy có bị tràn RAM hay không).
-- Xem trạng thái tiến trình SSH, Tunnel có bị sập không.
-- Bật/Tắt các dịch vụ này trực tiếp không cần động vào ĐT.
-- Xem file log quá trình khởi động `boot.log`.
-
----
-
-## 🚀 6. Hướng Dẫn Sử Dụng Và Thiết Lập Nhiệm Vụ
-
-### Giao việc qua Terminal / SSH
-Bạn có thể ra lệnh 1 lần (One-shot):
-```bash
-zeroclaw agent -m "Hãy phân tích log truy cập web ngày hôm qua và tạo file báo cáo.md"
-```
-Hoặc vào chế độ trò chuyện:
-```bash
-zeroclaw agent
-```
-
-### Quản lý Tiến độ (Cron Scheduler)
-ZeroClaw hỗ trợ thiết lập lịch để giao việc định kỳ.
-*Ví dụ: Yêu cầu AI lấy tin tức công nghệ mỗi 8h sáng:*
-```bash
-zeroclaw cron add "0 8 * * *" "Tìm kiếm 5 tin tức AI mới nhất trên mạng và lưu vào tóm-tắt.txt"
-```
-Kiểm tra danh sách tác vụ đang chạy định kỳ: `zeroclaw cron list`
-
-## 🏁 Tổng Kết
-Bạn đã hoàn thành việc biến chiếc điện thoại cũ thành một cỗ máy thông minh. Từ giờ, hãy liên lạc với Agent của bạn qua Telegram, xem trạng thái sức khoẻ qua Dashboard, và sử dụng SSH nếu cần cấu hình kỹ thuật sâu hơn. Chúc bạn làm chủ được AI của mình!
+(Bạn sẽ chat được với Agent ngay trên Telegram. Bạn có thể dùng `Termux:Boot` để tự động chạy lệnh daemon này mỗi khi khởi động điện thoại lại).

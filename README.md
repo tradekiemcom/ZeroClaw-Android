@@ -1,35 +1,24 @@
-# ZeroClaw-Android — Termux Automation setup
+# 🏢 ZeroClaw-Android (A.I Company Edition)
 
-Automated environment for the Galaxy Note 10+ using Termux.
+Bản tùy biến kiến trúc dành cho dự án **[zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)** để chạy tự nhiên (native) trên môi trường **Termux (Android)**.
+Dự án quy hoạch lại hệ thống ZeroClaw mặc định thành mô hình **Công ty Đa Đặc Vụ (Multi-Agent A.I Company)**.
 
-## 🚀 Quick Start (on Termux Android)
+## 🌟 Chức Năng Cốt Lõi
+- Khởi tạo các "Phòng Ban AI" chuyên biệt: `CEO`, `Trợ lý`, `R&D`, `Marketing`, `Trading`.
+- Điều phối giao việc bằng giao diện dòng lệnh `company-mgr`.
+- Dự phòng nội bộ: Tự động đánh giá cấu hình điện thoại và fallback về TinyLLM (LlamaCPP) nếu không có API Key.
+- Giám sát tiến độ qua Telegram hoặc Cron scheduling.
 
-1.  **Clone**: 
-    ```bash
-    git clone https://github.com/tradekiemcom/ZeroClaw-Android.git
-    cd ZeroClaw-Android
-    ```
-2.  **Setup**:
-    ```bash
-    chmod +x setup.sh && ./setup.sh
-    ```
-3.  **Shield (on PC/Mac)**:
-    Connect your phone via USB and run this script from your computer:
-    ```bash
-    chmod +x shield/setup-shield.sh && ./shield/setup-shield.sh
-    ```
-4.  **Launch**:
-    Services (SSHD, Tunnel, Dashboard) will start immediately and automatically after each Android restart thanks to `Termux:Boot`.
+## 📙 Hướng Dẫn Sử Dụng
+Mọi chi tiết về cách cài đặt, chuẩn bị cấu hình và lệnh điều hành công ty đều nằm ở đây:
+👉 **[TÀI LIỆU HƯỚNG DẪN KỸ THUẬT (Tiếng Việt)](docs/HUONG_DAN_SU_DUNG.md)**
 
-## 🛡 Features
-- **Auto-Boot**: Persistence via `Termux:Boot`.
-- **Battery & Process Shield**: Prevents Android 12+ from killing Termux processes.
-- **Admin Dashboard**: Lightweight monitoring and service control ([http://localhost:7643](http://localhost:7643)).
-- **Cloudflare Tunnel**: Remote access via your domain configured on Cloudflare.
+## 🚀 Cài Đặt Nhanh (trên thiết bị Android > Termux)
+```bash
+pkg update -y && pkg install -y git
+git clone https://github.com/tradekiemcom/ZeroClaw-Android.git
+cd ZeroClaw-Android
+chmod +x install.sh && ./install.sh
+```
 
-## 📙 Hướng Dẫn Sử Dụng (Vietnamese)
-Để tìm hiểu sâu về kiến trúc, khâu chuẩn bị và cách dùng ZeroClaw trên điện thoại, hãy xem:
-👉 **[TÀI LIỆU HƯỚNG DẪN KỸ THUẬT](docs/HUONG_DAN_SU_DUNG.md)**
-
-## 📘 Documentation (English)
-For a deep dive into the architecture and how to use ZeroClaw on your phone, see the **[Technical Manual](docs/TECHNICAL_MANUAL.md)**.
+*(Sau đó gõ `company-mgr` để bắt đầu quản lý)*
