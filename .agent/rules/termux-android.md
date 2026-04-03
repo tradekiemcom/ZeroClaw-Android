@@ -1,62 +1,27 @@
-# Termux & Android Optimization Rules
+# ZeroClaw-Android — Termux/Android Optimization Rules
 
-**Target device: Samsung Galaxy Note 10+ (SM-N975F) — Android 12+ / API 31+**
+These rules apply to any AI agent working within the ZeroClaw-Android project.
 
-## Package Management
+## 📱 Termux Environment Constraints
 
-- Use `pkg install` — NEVER `apt install` directly.
-- Always run `pkg update && pkg upgrade` before installing.
-- Install from Termux repos only. If unavailable, build from source for `aarch64`.
+- **Paths**: ALWAYS use absolute paths for scripts, starting with `/data/data/com.termux/files/usr/` for system binaries or `/data/data/com.termux/files/home/` for home-dir related tasks.
+- **Dependencies**: Use `pkg install` instead of `apt-get` or other package managers.
+- **Node.js**: Use `nodejs-lts` for stability.
+- **Architecture**: The target is `aarch64` (ARM64). Avoid any x86/x64 specific binaries.
 
-## Path Conventions
+## 🛡 Battery & Process Persistence
 
-| Variable | Path |
-|---|---|
-| `$HOME` | `/data/data/com.termux/files/home` |
-| `$PREFIX` | `/data/data/com.termux/files/usr` |
-| `$TMPDIR` | `/data/data/com.termux/files/usr/tmp` |
-| Boot scripts | `~/.termux/boot/` |
-| Termux config | `~/.termux/` |
+- **Wake Lock**: Every boot script must acquire a wake-lock using `termux-wake-lock` to prevent the CPU from sleeping.
+- **Persistence**: Any long-running service (Tunnel, Dashboard, etc.) MUST be registered in the `~/.termux/boot/` directory via a shell wrapper.
+- **Shielding**: Advise the user to perform the one-time ADB shield setup to prevent the "Phantom Process Killer" from terminating background Node.js processes.
 
-- **NEVER** hardcode `/usr/bin` or `/etc` — these don't exist in Termux.
-- Use `$PREFIX/bin`, `$PREFIX/etc` instead.
-- Scripts must use `#!/data/data/com.termux/files/usr/bin/bash` or `#!/usr/bin/env bash`.
+## ☁ Cloudflare Tunnel Management
 
-## Architecture
+- **Binary**: Always use the ARM64 binary downloaded from official Cloudflare GitHub releases.
+- **Security**: Tunnel tokens and credentials must be treated as sensitive.
 
-- **CPU**: ARM64 (aarch64) — always use ARM64 binaries.
-- **No root assumed**: Scripts should work without root unless explicitly stated.
-- **No systemd**: Use `nohup`, `setsid`, or Termux:Boot for persistence.
-- **No cron**: Use `crond` from `termux-services` or `termux-job-scheduler`.
+## 🐚 Shell Scripting Style
 
-## Battery & Process Survival
-
-- Always acquire wake-lock: `termux-wake-lock`
-- Termux notification must stay visible (foreground service).
-- Phantom Process Killer must be disabled via ADB (see `shield/`).
-- Request battery optimization exemption.
-
-## Networking
-
-- Default ports may conflict with Android services. Use ports > 7000.
-- `localhost` and `127.0.0.1` both work inside Termux.
-- For external access, use Cloudflare Tunnel (never expose ports directly).
-
-## File Permissions
-
-- Scripts must be `chmod +x` to execute.
-- Termux:Boot scripts must be executable to auto-run.
-- Avoid `777` — use `755` for scripts, `644` for configs.
-
-## Node.js in Termux
-
-- Install: `pkg install nodejs-lts`
-- Native modules may need: `pkg install python make clang`
-- Prefer zero-dependency implementations when possible.
-- Use `process.env.PREFIX` to detect Termux environment.
-
-## Logging
-
-- Log to `$HOME/zeroclaw/logs/` — NOT to `/var/log/`.
-- Rotate logs manually or with a simple script.
-- Include timestamps in ISO 8601 format.
+- Use `#!/data/data/com.termux/files/usr/bin/bash` for the shebang.
+- Implement robust error handling (`set -e`).
+- Use informative logging/echo statements for debugging.

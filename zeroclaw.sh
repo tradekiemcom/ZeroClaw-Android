@@ -83,7 +83,7 @@ cmd_start() {
 
     echo ""
     echo -e "  ${CYAN}Dashboard:${NC} http://localhost:$DASHBOARD_PORT"
-    echo -e "  ${CYAN}Remote:${NC}    https://claw.iz.life"
+    echo -e "  ${CYAN}Remote:${NC}    https://your-domain.com"
     echo ""
 }
 
@@ -114,7 +114,7 @@ cmd_status() {
     print_status "SSH Daemon" "sshd"
     echo ""
     echo -e "  ${CYAN}Port:${NC}   $DASHBOARD_PORT"
-    echo -e "  ${CYAN}Domain:${NC} claw.iz.life"
+    echo -e "  ${CYAN}Domain:${NC} your-domain.com"
     echo -e "  ${CYAN}Logs:${NC}   $LOG_DIR/"
     echo ""
 }

@@ -3,171 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZeroClaw — Admin Dashboard</title>
-    <meta name="description" content="ZeroClaw Android Agent Administration Panel">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>ZeroClaw-Android — Admin Panel</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; margin: 0; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; color: #38bdf8; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .card { background-color: #1e293b; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #334155; }
+        .card-title { font-size: 0.875rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-bottom: 1rem; }
+        .card-value { font-size: 1.25rem; font-weight: 700; color: #f8fafc; }
+        .card-status { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; }
+        .status-running { background-color: #065f46; color: #34d399; }
+        .status-stopped { background-color: #7f1d1d; color: #f87171; }
+    </style>
 </head>
 <body>
-
-    <!-- ── Login Screen ──────────────────────────────── -->
-    <div id="login-screen" class="screen active">
-        <div class="login-container">
-            <div class="login-logo">
-                <div class="logo-icon">🐾</div>
-                <h1>ZeroClaw</h1>
-                <p class="login-subtitle">Android Agent Command Center</p>
-            </div>
-            <form id="login-form" class="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" autocomplete="username" required placeholder="admin">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="••••••••">
-                </div>
-                <div id="login-error" class="error-message hidden"></div>
-                <button type="submit" id="login-btn" class="btn btn-primary btn-full">
-                    <span class="btn-text">Sign In</span>
-                    <span class="btn-loader hidden">●●●</span>
-                </button>
-            </form>
+    <h1>🐾 ZeroClaw-Android: Admin Panel</h1>
+    <div class="grid">
+        <div class="card">
+            <div class="card-title">System Uptime</div>
+            <div id="uptime" class="card-value">--</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Memory (Used / Total)</div>
+            <div id="memory" class="card-value">--</div>
+        </div>
+        <div class="card">
+            <div class="card-title">SSHD Service</div>
+            <div id="sshd" class="card-status">--</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Cloudflared Service</div>
+            <div id="cloudflare" class="card-status">--</div>
         </div>
     </div>
 
-    <!-- ── Dashboard Screen ──────────────────────────── -->
-    <div id="dashboard-screen" class="screen">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <span class="header-logo">🐾</span>
-                <h1 class="header-title">ZeroClaw</h1>
-                <span class="header-badge" id="connection-badge">● Connected</span>
-            </div>
-            <div class="header-right">
-                <button id="settings-btn" class="btn btn-ghost" title="Settings">⚙</button>
-                <button id="logout-btn" class="btn btn-ghost" title="Logout">⏻</button>
-            </div>
-        </header>
+    <script>
+        const formatUptime = (seconds) => {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return `${h}h ${m}m`;
+        };
 
-        <!-- Status Cards -->
-        <main class="dashboard-main">
-            <section class="status-grid">
-                <div class="card card-uptime">
-                    <div class="card-icon">⏱</div>
-                    <div class="card-content">
-                        <div class="card-label">Uptime</div>
-                        <div class="card-value" id="stat-uptime">—</div>
-                    </div>
-                </div>
-                <div class="card card-memory">
-                    <div class="card-icon">🧠</div>
-                    <div class="card-content">
-                        <div class="card-label">Memory</div>
-                        <div class="card-value" id="stat-memory">—</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="memory-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card card-cpu">
-                    <div class="card-icon">⚡</div>
-                    <div class="card-content">
-                        <div class="card-label">CPU Load</div>
-                        <div class="card-value" id="stat-cpu">—</div>
-                    </div>
-                </div>
-                <div class="card card-platform">
-                    <div class="card-icon">📱</div>
-                    <div class="card-content">
-                        <div class="card-label">Platform</div>
-                        <div class="card-value card-value-sm" id="stat-platform">—</div>
-                    </div>
-                </div>
-            </section>
+        const updateStatus = async () => {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                document.getElementById('uptime').innerText = formatUptime(data.uptime);
+                
+                const totalMem = Math.round(data.totalMem / 1024 / 1024);
+                const freeMem = Math.round(data.freeMem / 1024 / 1024);
+                document.getElementById('memory').innerText = `${totalMem - freeMem}MB / ${totalMem}MB`;
+                
+                const sshd = document.getElementById('sshd');
+                sshd.innerText = data.sshd ? 'RUNNING' : 'STOPPED';
+                sshd.className = 'card-status ' + (data.sshd ? 'status-running' : 'status-stopped');
 
-            <!-- Services -->
-            <section class="section">
-                <h2 class="section-title">Services</h2>
-                <div class="services-grid">
-                    <div class="service-card" data-service="tunnel">
-                        <div class="service-header">
-                            <span class="service-indicator" id="svc-tunnel-indicator"></span>
-                            <span class="service-name">Cloudflare Tunnel</span>
-                            <span class="service-status" id="svc-tunnel-status">—</span>
-                        </div>
-                        <div class="service-actions">
-                            <button class="btn btn-sm btn-success" onclick="serviceAction('tunnel','start')">Start</button>
-                            <button class="btn btn-sm btn-danger" onclick="serviceAction('tunnel','stop')">Stop</button>
-                            <button class="btn btn-sm btn-outline" onclick="serviceAction('tunnel','restart')">Restart</button>
-                        </div>
-                    </div>
-                    <div class="service-card" data-service="sshd">
-                        <div class="service-header">
-                            <span class="service-indicator" id="svc-sshd-indicator"></span>
-                            <span class="service-name">SSH Daemon</span>
-                            <span class="service-status" id="svc-sshd-status">—</span>
-                        </div>
-                        <div class="service-actions">
-                            <button class="btn btn-sm btn-success" onclick="serviceAction('sshd','start')">Start</button>
-                            <button class="btn btn-sm btn-danger" onclick="serviceAction('sshd','stop')">Stop</button>
-                            <button class="btn btn-sm btn-outline" onclick="serviceAction('sshd','restart')">Restart</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                const cloudflare = document.getElementById('cloudflare');
+                cloudflare.innerText = data.cloudflared ? 'RUNNING' : 'STOPPED';
+                cloudflare.className = 'card-status ' + (data.cloudflared ? 'status-running' : 'status-stopped');
 
-            <!-- Logs -->
-            <section class="section">
-                <h2 class="section-title">Logs</h2>
-                <div class="log-controls">
-                    <select id="log-select" class="select">
-                        <option value="boot">Boot Log</option>
-                        <option value="tunnel">Tunnel Log</option>
-                        <option value="dashboard">Dashboard Log</option>
-                    </select>
-                    <button class="btn btn-sm btn-outline" onclick="loadLogs()">Refresh</button>
-                </div>
-                <div class="log-viewer" id="log-viewer">
-                    <pre id="log-content">Select a log and click Refresh...</pre>
-                </div>
-            </section>
-        </main>
+            } catch (err) {
+                console.error('Failed to fetch status:', err);
+            }
+        };
 
-        <!-- Settings Modal -->
-        <div id="settings-modal" class="modal hidden">
-            <div class="modal-backdrop" onclick="closeSettings()"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Settings</h2>
-                    <button class="btn btn-ghost" onclick="closeSettings()">✕</button>
-                </div>
-                <div class="modal-body">
-                    <h3>Change Password</h3>
-                    <form id="password-form">
-                        <div class="form-group">
-                            <label for="current-pw">Current Password</label>
-                            <input type="password" id="current-pw" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="new-pw">New Password</label>
-                            <input type="password" id="new-pw" required minlength="8" placeholder="Minimum 8 characters">
-                        </div>
-                        <div class="form-group">
-                            <label for="confirm-pw">Confirm New Password</label>
-                            <input type="password" id="confirm-pw" required minlength="8">
-                        </div>
-                        <div id="pw-error" class="error-message hidden"></div>
-                        <div id="pw-success" class="success-message hidden"></div>
-                        <button type="submit" class="btn btn-primary">Update Password</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+        updateStatus();
+        setInterval(updateStatus, 5000);
+    </script>
 </body>
 </html>

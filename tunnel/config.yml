@@ -1,6 +1,6 @@
 # ============================================================
 # ZeroClaw Cloudflare Tunnel Configuration
-# Domain: claw.iz.life → localhost:7643
+# Domain: your-configured-domain.com → localhost:7643
 # ============================================================
 
 # Tunnel will use token-based authentication (no cert needed)
@@ -15,7 +15,7 @@ credentials-file: /data/data/com.termux/files/home/.cloudflared/credentials.json
 
 originRequest:
   # Validate Host header to prevent host-header attacks
-  httpHostHeader: "claw.iz.life"
+  httpHostHeader: "your-configured-domain.com"
   # No TLS to localhost (dashboard is HTTP)
   noTLSVerify: true
   # Connection timeouts
@@ -27,11 +27,11 @@ originRequest:
 
 ingress:
   # Dashboard — primary route
-  - hostname: claw.iz.life
+  - hostname: your-configured-domain.com
     service: http://localhost:7643
     originRequest:
-      # CORS: restrict to claw.iz.life only
-      httpHostHeader: "claw.iz.life"
+      # CORS: restrict to domain only
+      httpHostHeader: "your-configured-domain.com"
 
   # Catch-all: reject unmatched requests
   - service: http_status:404
