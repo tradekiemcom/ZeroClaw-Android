@@ -27,5 +27,9 @@ Automated environment for the Galaxy Note 10+ using Termux.
 - **Admin Dashboard**: Lightweight monitoring and service control ([http://localhost:7643](http://localhost:7643)).
 - **Cloudflare Tunnel**: Remote access via your domain configured on Cloudflare.
 
-## 📘 Documentation
+## 📙 Hướng Dẫn Sử Dụng (Vietnamese)
+Để tìm hiểu sâu về kiến trúc, khâu chuẩn bị và cách dùng ZeroClaw trên điện thoại, hãy xem:
+👉 **[TÀI LIỆU HƯỚNG DẪN KỸ THUẬT](docs/HUONG_DAN_SU_DUNG.md)**
+
+## 📘 Documentation (English)
 For a deep dive into the architecture and how to use ZeroClaw on your phone, see the **[Technical Manual](docs/TECHNICAL_MANUAL.md)**.
