@@ -18,3 +18,4 @@ mkdir -p "$PREFIX/tmp"
 export TMPDIR="$PREFIX/tmp"
 
 echo "[Thông tin] Cài đặt thư viện nền tảng hoàn tất."
+hash -r
