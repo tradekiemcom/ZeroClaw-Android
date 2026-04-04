@@ -1,110 +1,93 @@
-# 💼 ZeroClaw-Android: A.I Company Edition (Native Termux)
+# 🐾 ZeroClaw-Android: Cẩm Nang Vận Hành A.I Company
 
-Dự án này là phiên bản tùy biến tự động hóa để cài đặt trực tiếp **[zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)** xuống môi trường Android (Termux) mà **không cần Root**. Đồng thời quy hoạch hệ thống dưới dạng một **Công ty A.I (Multi-Agent)**.
+Tài liệu này hướng dẫn cách thức triển khai và vận hành hệ thống **ZeroClaw-Android**. Phiên bản này đã được đại tu toàn diện để có thể được biên dịch thẳng từ mã nguồn gốc bằng trình dịch Rust, chạy nguyên bản hoàn toàn dưới Termux của người dùng mà không cần thiết bị đã Root. Đồng thời nó được chia kịch bản tạo hình thành 18 Agents (Đặc Vụ) để phục vụ duy nhất một doanh nghiệp.
 
 ---
 
-## 🏢 1. Mô Hình "Công Ty A.I" Là Gì?
+## 🌟 1. Cơ Cấu Tổ Chức & Phương Pháp Trọng Tâm
+Mục tiêu cốt lõi của toàn hệ thống là **Tạo ra lợi nhuận và Hỗ trợ Tăng trưởng**.
 
-Thay vì sử dụng một AI duy nhất, dự án này cung cấp lệnh `company-mgr` để khởi tạo các **Đặc Vụ (Agents)** đóng vai riêng biệt, giúp tăng tính chuyên môn khi thực thi nhiệm vụ:
+### 👑 Ban Lãnh Đạo & Điều Phối
+1. **Anh Hưng (Chủ tịch HĐQT/Founder)**: Người ra quyết định tối cao.
+2. **Thảo Agent (Trợ Lý Founder)**: `company-mgr management/assistant` - Phân tích mệnh lệnh của anh Hưng, dịch ra ngôn ngữ hệ thống phân bổ KPI cho CEO, đồng thời thực hiện báo cáo vắn tắt lên Founder.
+3. **CEO Agent**: `company-mgr management/ceo` - Giám đốc điều hành. Đưa ra chiến lược thực thi và lập lịch để các phòng ban cùng tuân thủ.
+4. **CPO Agent**: Giám đốc Vận hành và 2 Agent Tối ưu/Quản lý luồng công việc (Optimize, Workflow).
 
-- **CEO**: Đặc vụ chỉ huy, phân tích vấn đề lớn và ra quyết định.
-- **Assistant**: Trợ lý cá nhân, tóm tắt thông tin và nhắc việc.
-- **R&D**: (Nghiên cứu & Phát triển) Viết code, debug, thao tác Terminal, chạy script.
-- **Marketing**: Sáng tạo nội dung, tổng hợp tin tức web.
-- **Trading/Financial**: Cập nhật xu hướng coin/forex, phân tích tin tức tài chính.
+### ⚙️ Các Trụ Cột Doanh Thu
+Theo sau Ban Lãnh đạo là 4 khối chịu trách nhiệm tạo sản phẩm, bán sản phẩm và kiếm tiền:
 
-*Lưu ý: ZeroClaw không có Dashboard Web đồ họa mặc định. Đây là một công cụ sức mạnh dành riêng cho Terminal (CLI).*
+- 🔬 **Phòng R&D**: Đứng đầu là **CTO Agent**. Có 3 lính: *Coder* (Giết lỗi, lập trình), *Research* (Phân tích đối thủ), *Data Analytics* (Insight).
+- 💰 **Phòng Tài chính & Trading (Sinh Lời Nhanh)**: Đứng đầu là **CFO Agent**. Quản lý các cỗ máy kiếm tiền *TradeFx* (Ngoại hối), *TradeFund* (Quỹ ETF), *TradeGold* (XAUUSD) và *Finance Analyst* (Kế Toán).
+- 📣 **Phòng Marketing (Tạo Phễu Dòng)**: Đứng đầu là **CMO Agent**. Quản lý 2 nhánh *Content Agent* (Viết bài/Tạo Video) và *Media Agent* (Tối ưu điểm chạm CPC quảng cáo).
+- 🤝 **Phòng Sales & CS (Chốt Đơn)**: Đứng đầu là **CSO Agent**. Quản lý *Sale Agent* (Thuyết phục/Vượt qua sự từ chối) và *CS Agent* (Retain Data/Chăm sóc vòng đời KH).
 
 ---
 
 ## 🎒 2. Khâu Chuẩn Bị Tối Quan Trọng
 
-### 2.1 Yêu Cầu Thiết Bị
-- **Android**: Bất kỳ thiết bị Android nào (Từ v8.0 trở lên, kiến trúc ARM64).
-- **RAM**: Tối thiểu 4GB. (Từ 6GB trở lên nếu muốn chạy mô hình nội bộ TinyLLM trên máy tính toán offline).
-- **ROM**: Trống ít nhất 1-2GB.
+### 2.1 Yêu cầu thiết bị
+- **Phải có RAM tối thiểu 4GB - 6GB**: Vì quá trình cài đặt yêu cầu Termux chạy trình biên dịch `cargo build`, nếu điện thoại có RAM thấp, tiến trình sẽ bị hệ điều hành Android ngắt ngầm (OOM Kill).
+- Cài đặt **Termux** từ kho ứng dụng bảo mật `F-Droid` (KHÔNG CÀI TRÊN CH PLAY).
 
-### 2.2 Phần Mềm (Tải từ F-Droid, KHÔNG dùng CH Play)
-Tuyệt đối không dùng bản trên CH Play vì chúng đã ngưng hỗ trợ. Phải cài từ [F-Droid](https://f-droid.org/):
-1. Cài app **Termux**.
-2. Cài app **Termux:API** (Để AI tương tác được với phần cứng/mạng).
-
-### 2.3 Cấu Hình API Keys
-Vì ZeroClaw cần "Lực lượng lao động" (Các LLM), bạn cần API Key của:
-- **Gemini / OpenAI / OpenRouter** (Hỗ trợ hầu hết mọi model hiện nay).
+### 2.2 Các tài nguyên cần thiết
+- API Key (OpenRouter, Gemini, OpenAI v.v.)
+- Một cái đầu lạnh để giao nhiệm vụ.
 
 ---
 
-## 🛠 3. Các Bước Cài Đặt Chính Thức
+## 🛠 3. Quá Trình Cài Đặt (Build From Source)
 
-### Bước 1: Mở ứng dụng Termux và cấp quyền bộ nhớ:
+**Bước 1:** Bật Termux và cấp quyền lưu trữ qua lệnh:
 ```bash
 termux-setup-storage
 ```
 
-### Bước 2: Tải trình cài đặt
+**Bước 2:** Clone dự án kèm theo core ẩn của zeroclaw.
 ```bash
-pkg update -y && pkg install -y git
+pkg install -y git
 git clone https://github.com/tradekiemcom/ZeroClaw-Android.git
 cd ZeroClaw-Android
+git submodule update --init --recursive
 ```
 
-### Bước 3: Chạy trình thiết lập Công ty A.I
+**Bước 3:** Chạy cài đặt tự động cực khủng (Tuyệt đối KHÔNG gõ Sudo).
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
-*Script sẽ kiểm tra phần cứng RAM, tự động tải bản ZeroClaw aarch64-linux-android gốc về, và cấu hình các phòng ban chức năng.*
+
+**Lưu ý khi thiết bị đang biên dịch (cargo run):** Máy điện thoại sẽ nóng lên. Đây là chuyện thường vì vi xử lý đang làm công việc của một Server PC biên dịch mã nguồn C/C++/Rust. Việc này chỉ xảy ra **1 LẦN DUY NHẤT**.
 
 ---
 
-## ⚙️ 4. Thiết Lập Tư Duy (Onboarding)
+## 👔 4. Cách Giao Việc Cho Đặc Vụ
 
-Sau khi cài xong, bạn cần móc API Key vào cho các nhân viên A.I của mình hoạt động. Gõ:
+Sau cài đặt xong, bạn thao tác thông qua lệnh `company-mgr <đường_dẫn_phòng_ban>`
+
+### Ví dụ: Gọi Thảo Agent
+Là Founder, anh Hưng có thể gọi Thảo:
 ```bash
-zeroclaw onboard
+company-mgr management/assistant -m "Bảo CEO lên kế hoạch phát triển tool Trade Quỹ ETF mới gấp"
 ```
-Làm theo màn hình để chọn Nhà cung cấp (Vd: gemini) và dán API Key.
 
-*(Tính Năng Mới)*: Nếu thiết bị bạn **có RAM > 4GB** và bạn **không có API Key**, ZeroClaw có thể tự động dự phòng và tải một mô hình **TinyLLM (LlamaCPP)** từ bộ xử lý nội bộ. *(Lưu ý: xử lý bằng chip điện thoại sẽ khá chậm)*.
+### Ví dụ: Hỏi giá Vàng / Lệnh Trading
+```bash
+company-mgr finance/trade_gold
+```
+(Giao diện trò chuyện mở ra. Hệ thống đã nạp sẵn tính cách của một chuyên gia đánh Vàng).
 
+### Ví dụ: Tạo nội dung bài viết Facebook / Tiktok
+```bash
+company-mgr marketing/content -m "Anh/Em hãy viết bài MKT đánh dấu 10.000 users cho công ty. Không quá dài, đính kèm Icon bắt mắt."
+```
 ---
 
-## 👔 5. Hướng Dẫn Điều Hành Công Ty A.I
+## 📡 5. Tích Hợp Network Chuyên Sâu
 
-Bây giờ bạn là Chủ tịch (Founder). Hãy mở Termux lên và gọi các nhân sự bằng lệnh CLI mới: `company-mgr`
-
-### Giao việc một lần (One-shot)
+Hệ thống có tự động tải phiên bản **Cloudflare Tunnel (Bản quyền Linux ARM-64)**.
+Nếu anh muốn dùng Tunnel kết nối giao diện API:
 ```bash
-company-mgr marketing -m "Viết ngay cho tôi một kịch bản tiktok về AI"
-company-mgr rd -m "Tạo và chạy một script python kiểm tra ip mạng hiện tại"
+cloudflared service install [MÃ_TOKEN_TRÊN_CLOUDFLARE_ZERO_TRUST]
 ```
 
-### Triệu tập họp (Interactive Chat)
-Bạn muốn chat trực tiếp dài hạn với Trưởng phòng Trading?
-```bash
-company-mgr trading
-```
-*(Hệ thống sẽ mở giao diện chat. Bạn cứ gõ tiếng Việt tự nhiên hỏi xu hướng giá Bitcoin)*.
-
-### Làm sao để quản lý giám sát tiến độ?
-ZeroClaw có trình lên lịch (Cron) cực kỳ xịn để AI tự làm việc mỗi ngày.
-```bash
-zeroclaw cron add "0 8 * * *" "company-mgr trading -m 'Phân tích tin tức báo chí hôm nay và gửi báo cáo'"
-```
-
----
-
-## 📱 6. Kết Nối Telegram Để Điều Khiển Từ Xa
-Thao tác trên màn hình nhỏ rất mệt. Bạn có thể kết nối ZeroClaw với Telegram để chat với "Nhân viên" qua tin nhắn:
-1. Tạo Bot Telegram qua @BotFather và lấy Token.
-2. Ép kênh Telegram:
-   ```bash
-   zeroclaw channel bind-telegram <TOKEN_CUA_BAN>
-   ```
-3. Chạy Daemon nền:
-   ```bash
-   zeroclaw daemon
-   ```
-(Bạn sẽ chat được với Agent ngay trên Telegram. Bạn có thể dùng `Termux:Boot` để tự động chạy lệnh daemon này mỗi khi khởi động điện thoại lại).
+Cấu hình xong, Công ty A.I của anh Hưng đã sẵn sàng bùng nổ thu nhập!
