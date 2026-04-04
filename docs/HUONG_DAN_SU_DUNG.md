@@ -17,46 +17,42 @@ Tài liệu này hướng dẫn cài đặt và thiết lập lõi tự động 
 
 ---
 
-## ⚙️ 2. Onboarding (Thiết lập ban đầu)
-Ngay sau khi cài đặt thành công thuật toán lõi, hệ thống cần được định danh và khai báo API Key. Bạn gõ lệnh sau để mở giao diện làm quen:
+## ⚙️ 2. Trình Tự Khởi Động Chuẩn Xác (Bắt Buộc)
+
+ZeroClaw được phân mảng thành nhiều luồng, để một hệ thống vừa có thể Chat Telegram, vừa tính toán ngầm, vừa mở Web Dashboard, bạn **phải** chạy theo đúng trình tự sau đây:
+
+### Bước 1: Khai báo API Key (Chỉ làm 1 lần)
+Ngay sau khi cài đặt xong, bạn gõ lệnh sau để mở giao diện làm quen. Hệ thống sẽ hỏi để bạn nhập API Key của Gemini hoặc OpenRouter:
 ```bash
 zeroclaw onboard
 ```
-*(Hãy làm theo hướng dẫn hỏi-đáp trên trạm kiểm soát để dán API Key của Gemini hoặc OpenRouter vào).*
 
----
-
-## 🔗 3. Cấu Hình Tắt Chặn Bảo Mật Telegram (Auto-Approve)
-Để hệ thống không bị khựng lại hỏi xác nhận `[y/N]` mỗi khi chat quản lý qua mạng (vd như iZChat v.v..), bạn hãy mở file cấu hình gốc để tắt chặn:
-
-1. Gõ lệnh sửa file cấu hình (nếu chưa có, bạn thử gõ lệnh `zeroclaw config` để hệ thống tự sinh file):
+### Bước 2: Tắt bảo mật để chat từ xa (Tuỳ chọn)
+Để iZChat hoặc bất kỳ hệ thống ngoài nào gọi ZeroClaw mà không bị hỏi xác nhận `[y/N]`, bạn mở cấu hình:
 ```bash
 nano ~/.config/zeroclaw/config.toml
 ```
+Và thêm dòng này vào để tự động duyệt: `auto_approve = true`
 
-2. Bổ sung hoặc đổi thành `true`:
-```toml
-auto_approve = true
-```
-
----
-
-## 💻 4. Truy Cập Giao Diện Web Dashboard
-
-Bản chất ZeroClaw là chạy theo mô hình ngầm, nếu muốn mở giao diện điều khiển (Web UI / Dashboard) trực quan, bạn dùng trình quản lý **Gateway**:
-
-**Bước 1: Kết nối Tunnel nội bộ**
-Bộ cài ZeroClaw đã tích hợp Cloudflared bản quyền gốc. Chỉ việc dán Token của Cloudflare bằng lệnh sau (Chỉ dán 1 lần duy nhất):
+### Bước 3: Dán Token Mạng Ra Trạm Cloudflare (Chỉ làm 1 lần)
+Để Dashboard có thể kết nối với mạng internet bên ngoài (qua domain của bạn), hãy nối Tunnel:
 ```bash
 zeroclaw tunnel bind <TOKEN_CUẢ_BẠN>
 ```
 
-**Bước 2: Khởi động Động cơ Gateway vĩnh viễn**
-Thay vì gọi `daemon` hay `serve`, lệnh chuẩn xác cuối cùng để đánh thức đồng thời cả **Dashboard** và mở cổng **Cloudflare Tunnel** kết nối với internet là:
+### Bước 4: Khởi chạy Nhân Nền (Daemon)
+Đây là trái tim của hệ thống. Dù bạn có mở Dashboard hay không, quá trình tự động hoá, nhắc lịch (cron), thu thập dữ liệu ngầm và gửi tin nhắn về Telegram đều do Daemon phụ trách. Bạn nên chạy nó ẩn:
+```bash
+zeroclaw daemon &
+```
+*(Dấu `&` giúp tiến trình chạy chìm, trả lại dòng lệnh cho bạn thao tác tiếp).*
+
+### Bước 5: Khởi chạy Giao Diện Web & Tunnel (Gateway)
+Cuối cùng, để kích hoạt bảng điều khiển (Dashboard) và báo cho Cloudflare Tunnel mở cửa đón khách từ domain, bạn chạy lệnh Mở Cổng:
 ```bash
 zeroclaw gateway
 ```
-👉 *Done! Lúc này, chỉ cần mở trình duyệt lên gõ đường link Domain (vd: `boss.iz.life`), bạn sẽ thấy Web Dashboard được bung ra sắc nét, không còn báo lỗi Connection Refused hay Time-out nữa.*
+👉 *Done! Lúc này tiến trình Gateway sẽ thức dậy. Bạn truy cập qua Web (`boss.iz.life...`) là sẽ thấy Dashboard đồ họa xịn xò 100% không còn báo lỗi Connection Refused, đồng thời Telegram vẫn đang hoạt động thông suốt nhờ Daemon ở Bước 4.*
 
 ---
 
