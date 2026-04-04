@@ -41,18 +41,24 @@ zeroclaw tunnel bind <TOKEN_CUẢ_BẠN>
 ```
 
 ### Bước 4: Khởi chạy Nhân Nền (Daemon)
-Đây là trái tim của hệ thống. Dù bạn có mở Dashboard hay không, quá trình tự động hoá, nhắc lịch (cron), thu thập dữ liệu ngầm và gửi tin nhắn về Telegram đều do Daemon phụ trách. Bạn nên chạy nó ẩn:
+Đây là trái tim của hệ thống. Quá trình tự động hoá, nhắc lịch (cron), thu thập dữ liệu ngầm và gửi tin nhắn về Telegram đều do Daemon phụ trách. 
+Bạn gõ lệnh sau để chạy:
 ```bash
-zeroclaw daemon &
+zeroclaw daemon
 ```
-*(Dấu `&` giúp tiến trình chạy chìm, trả lại dòng lệnh cho bạn thao tác tiếp).*
+👉 *Lưu ý: Sau khi lệnh này chạy, hệ thống sẽ liên tục đổ log (nhật ký) ra màn hình. **Bạn tuyệt đối không bấm Ctrl+C để thoát**.*
 
-### Bước 5: Khởi chạy Giao Diện Web & Tunnel (Gateway)
-Cuối cùng, để kích hoạt bảng điều khiển (Dashboard) và báo cho Cloudflare Tunnel mở cửa đón khách từ domain, bạn chạy lệnh Mở Cổng:
+### Bước 5: Khởi chạy Giao Diện Web & Tunnel (Gateway) trên Session Kế Tiếp
+Để kích hoạt trạm điều khiển (Dashboard) và báo cho Cloudflare Tunnel mở cửa đón khách từ domain đồng thời không làm gián đoạn Daemon ở Bước 4, bạn tiến hành như sau:
+
+1. Vuốt từ cạnh trái của màn hình Termux sang phải.
+2. Chọn **"New Session"** (Tạo phiên cửa sổ Terminal mới).
+3. Tại cửa sổ Terminal số 2 này, bạn gõ lệnh Mở Cổng:
 ```bash
 zeroclaw gateway
 ```
-👉 *Done! Lúc này tiến trình Gateway sẽ thức dậy. Bạn truy cập qua Web (`boss.iz.life...`) là sẽ thấy Dashboard đồ họa xịn xò 100% không còn báo lỗi Connection Refused, đồng thời Telegram vẫn đang hoạt động thông suốt nhờ Daemon ở Bước 4.*
+
+👉 *Tiến trình Gateway sẽ thức dậy và liên tục chiếm dụng cửa sổ số 2 này. Bây giờ hệ thống đã hoàn toàn sẵn sàng, bạn có thể trở về màn hình chính điện thoại, mở trình duyệt lên gõ đường link Domain (`boss.iz.life...`) là sẽ thấy Dashboard đồ họa sắc nét bung ra, trong khi Telegram cũng được trả lời tức thì bởi Daemon (đang chạy ở màn số 1).*
 
 ---
 
