@@ -23,8 +23,8 @@ bash "$SCRIPTS_DIR/01-check-env.sh"
 echo -e "\n\033[32m[2/5] Cài đặt Dependencies nền tảng (Rust, Clang, Binutils)...\033[0m"
 bash "$SCRIPTS_DIR/02-install-deps.sh"
 
-echo -e "\n\033[32m[3/5] Biên dịch mã nguồn ZeroClaw (Từ core/ )...\033[0m"
-bash "$SCRIPTS_DIR/03-build-zeroclaw.sh"
+echo -e "\n\033[32m[3/5] Tải thuật toán lõi ZeroClaw (Pre-built Android Binary)...\033[0m"
+bash "$SCRIPTS_DIR/03-install-binary.sh"
 
 echo -e "\n\033[32m[4/5] Trích xuất A.I Company...\033[0m"
 bash "$SCRIPTS_DIR/04-setup-company.sh"
