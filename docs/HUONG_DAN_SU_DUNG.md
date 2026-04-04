@@ -4,39 +4,47 @@ Tài liệu này bao gồm toàn bộ hướng dẫn từ A-Z để vận hành,
 
 ---
 
-## 🚀 1. Lệnh Chạy Cốt Lõi (Khởi động hệ thống)
+## 🚀 1. Lệnh Chạy Cốt Lõi (Khởi động máy chủ Server)
 
-Sau khi cài xong, ZeroClaw không tự động chạy ngầm. Bạn phải "mở cửa công ty" bằng cách chạy Daemon (Tiến trình chủ).
+Để kết nối Tunnel và tắt bảo mật, ZeroClaw dùng tệp cấu hình thay vì truyền cờ dòng lệnh dông dài. Bạn tiến hành mở file cấu hình gốc ra để sửa:
 
-### 🌐 Mở truy cập Dashboard mạng LAN (Bản đồ UI)
-Mặc định ZeroClaw chỉ trỏ vào `127.0.0.1` (Chỉ cái điện thoại mới vào được). Để dùng Laptop/PC trong cùng mạng Wifi truy cập vào điện thoại, bạn khởi động bằng lệnh:
 ```bash
-zeroclaw daemon --host 0.0.0.0 --port 42617
+nano ~/.config/zeroclaw/config.toml
 ```
-👉 *Lúc này, bạn dùng Laptop gõ địa chỉ IP Wifi của điện thoại (Ví dụ: `http://192.168.1.5:42617`) để vào Dashboard đồ họa (Web UI).*
 
-### ⚡ Bỏ qua việc xác nhận "Approve" trên Telegram
-ZeroClaw trang bị tính năng bảo mật: Mọi thao tác động chạm đến hệ thống (Kiểm tra model, đọc file, chạy lệnh) qua Telegram đều bị AI chặn lại và bắt người chủ **phải gõ "Y" trên màn hình Termux** để duyệt.
-Để tắt tính năng phiền toái này và cấp toàn quyền cho iZChat, bạn hãy thêm cờ tự động duyệt:
-```bash
-zeroclaw daemon --host 0.0.0.0 --auto-approve
+Trong file đó, bạn chỉnh sửa hoặc bổ sung các dòng sau để cấp quyền mở cổng mạng LAN và tự động duyệt lệnh:
+```toml
+# Chấp nhận tắt xác minh thủ công qua Telegram
+auto_approve = true
+
+# Mở cổng cho mạng LAN và Tunnel
+[server]
+host = "0.0.0.0"
+port = 42617
 ```
-*(Nếu phiên bản đang dùng lấy config từ tệp, bạn có thể thiết lập `auto_approve = true` trong file `~/.config/zeroclaw/config.toml`).*
+*(Ấn `Ctrl + X`, bấm `Y` và `Enter` để lưu lại trên Termux).*
+
+Sau khi lưu cấu hình, bạn khởi động máy chủ nền (Gateway) của ZeroClaw bằng một trong các lệnh chạy liên tục (Hãy thử xem lệnh nào máy bạn hỗ trợ):
+```bash
+zeroclaw serve
+```
+*(Hoặc `zeroclaw daemon` / `zeroclaw server` tuỳ phiên bản).*
 
 ---
 
-## 📡 2. Kích Hoạt Cloudflare Tunnel (Truy Cập Từ Xa)
+## 📡 2. Kích Hoạt Cloudflare Tunnel (Truy Cập Dashboard)
 
-Tin vui là ZeroClaw đã tích hợp thẳng Cloudflared vào nhân của ứng dụng. Bạn không cần dùng lệnh ngoài.
-**Bước 1:** Dán Token mà bạn đã tạo trên trang Cloudflare Zero Trust:
+Lỗi `connection refused` từ Cloudflared là do hệ thống máy chủ ZeroClaw chưa được bật lên (hoặc bị tắt ngầm). Bạn phải chắc chắn tiến trình `zeroclaw serve` đang chạy liên tục không bị văng.
+
+**Bước 1:** Dán Token Tunnel:
 ```bash
 zeroclaw tunnel bind <TOKEN_CUẢ_BẠN>
 ```
-**Bước 2:** Chạy tiến trình Daemon như hệ thống máy chủ:
+**Bước 2:** Bật Server và treo máy:
 ```bash
-zeroclaw daemon --host 0.0.0.0 --auto-approve
+zeroclaw serve
 ```
-👉 *Sau khi khởi chạy, Tunnel sẽ tự động được đào. Bây giờ bạn có thể ở bất kỳ đâu trên thế giới, bật 4G và dùng Domain (VD: `boss.iz.life`) để truy cập vào Dashboard của ZeroClaw.*
+👉 *Lúc này Cloudflared sẽ có đích đến là cổng 42617. Nó sẽ đưa Dashboard Web UI lên domain `note.iz.life` của anh!*
 
 ---
 
