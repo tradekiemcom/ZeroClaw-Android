@@ -58,7 +58,16 @@ zeroclaw daemon
 zeroclaw gateway
 ```
 
-👉 *Tiến trình Gateway sẽ thức dậy và liên tục chiếm dụng cửa sổ số 2 này. Bây giờ hệ thống đã hoàn toàn sẵn sàng, bạn có thể trở về màn hình chính điện thoại, mở trình duyệt lên gõ đường link Domain (`boss.iz.life...`) là sẽ thấy Dashboard đồ họa sắc nét bung ra, trong khi Telegram cũng được trả lời tức thì bởi Daemon (đang chạy ở màn số 1).*
+👉 *Tiến trình Gateway sẽ thức dậy và liên tục chiếm dụng cửa sổ số 2 này.* 
+
+### Bước 6: Đăng nhập Dashboard Web UI
+Bây giờ hệ thống đã hoàn toàn sẵn sàng, bạn có thể trở về màn hình chính điện thoại và mở trình duyệt lên:
+1. Gõ **đường link Domain** mà bạn đã cấu hình bên trong hệ thống Cloudflare Zero Trust (Ví dụ do bạn tự đặt: `admin.ten-mien-cua-ban.com`).
+2. Giao diện ZeroClaw Dashboard sẽ hiện lên yêu cầu mật khẩu/Mã xác thực.
+3. Bạn quay lại Termux (Ở cái Session cửa sổ số 2 đang chạy lệnh `zeroclaw gateway`), nhìn kỹ trên màn hình log sẽ thấy một hàng chữ cung cấp **Mã Bảo Mật (Auth Code / Password)**.
+4. Copy mã đó dán ngược lại vào trình duyệt là bạn sẽ chính thức làm chủ được giao diện điều khiển!
+
+*(Trong lúc đó, Telegram cũng vẫn đang được trả lời tức thì bởi tiến trình Daemon chạy ở màn Session số 1).*
 
 ---
 
