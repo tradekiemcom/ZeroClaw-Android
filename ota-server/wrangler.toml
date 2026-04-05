@@ -17,5 +17,9 @@ TELEGRAM_IDS = "975318323, 7237066439"
 CF_AI_KEY = "cf_ai_token_xxxxx"
 OPENROUTER_KEY = "sk-or-v1-xxxxxxxxxxxxxxxxx"
 NVIDIA_NIM_KEY = "nvapi-xxxxxxxxxxxxxxxxx"
-ENCRYPTION_KEY = "nhap_mat_khau_vao_day"
 TUNNEL_TOKEN = "eyJhIj... (Dán token Cloudflare của Sếp vào đây để auto-bind)"
+
+# Liên kết CSDL thiết bị
+[[kv_namespaces]]
+binding = "KV_DEVICES"
+id = "<THAY_THE_BANG_KV_ID_CUA_BAN>"

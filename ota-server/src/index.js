@@ -1,51 +1,136 @@
-import crypto from 'node:crypto';
+// Web Crypto API - Tích hợp sẵn trong Workers
+const crypto = {
+  subtle: globalThis.crypto.subtle,
+
+  randomBytes: async (size) => {
+    const array = new Uint8Array(size);
+    globalThis.crypto.getRandomValues(array);
+    return array;
+  },
+
+  pbkdf2: async (password, salt, iterations, keylen, hash) => {
+    const passwordBuffer = new TextEncoder().encode(password);
+    const saltBuffer = new Uint8Array(salt);
+
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      passwordBuffer,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+
+    return await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: saltBuffer,
+        iterations: iterations,
+        hash: hash
+      },
+      keyMaterial,
+      keylen * 8
+    );
+  }
+};
 
 // BƯỚC 1: Hàm Mã hóa AES-256-CBC tương thích với giao thức OpenSSL (-pbkdf2)
-function encryptAES_OpenSSL(text, password) {
+async function encryptAES_OpenSSL(text, password) {
   // OpenSSL sử dụng 8 byte ngẫu nhiên để làm Salt
-  const salt = crypto.randomBytes(8);
-  
-  // Trích xuất Khóa (32 bytes) và IV (16 bytes) theo chuẩn PBKDF2 của OpenSSL 1.1+
-  const keyiv = crypto.pbkdf2Sync(password, salt, 10000, 48, 'sha256');
-  const key = keyiv.subarray(0, 32);
-  const iv = keyiv.subarray(32, 48);
+  const salt = await crypto.randomBytes(8);
 
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  // Trích xuất Khóa (32 bytes) và IV (16 bytes) theo chuẩn PBKDF2 của OpenSSL 1.1+
+  const keyiv = await crypto.pbkdf2(password, salt, 10000, 48, 'SHA-256');
+  const key = keyiv.slice(0, 32);
+  const iv = keyiv.slice(32, 48);
+
+  const enc = new TextEncoder();
+  const encodedText = enc.encode(text);
+
+  const cipher = await crypto.subtle.encrypt(
+    { name: 'AES-CBC', iv: iv },
+    await crypto.subtle.importKey(
+      'raw',
+      key,
+      'AES-CBC',
+      false,
+      ['encrypt']
+    ),
+    encodedText
+  );
 
   // Ghép nối: Ký tự nhận diện 'Salted__' + 8 byte Salt + Nội dung đã mã hóa
-  const result = Buffer.concat([
-    Buffer.from('Salted__', 'ascii'),
-    salt,
-    encrypted
-  ]);
+  const result = new Uint8Array(8 + salt.length + cipher.byteLength);
+  result.set(new TextEncoder().encode('Salted__'), 0);
+  result.set(salt, 8);
+  result.set(new Uint8Array(cipher), 8 + salt.length);
 
   // Trả về định dạng Base64
-  return result.toString('base64');
+  return btoa(String.fromCharCode(...result));
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    
+
     // API Endpoint: /v1/sync?id=xxx&core=zeroclaw
     if (url.pathname === '/v1/sync') {
       const deviceId = url.searchParams.get('id');
       const coreType = url.searchParams.get('core');
+      const deviceToken = url.searchParams.get('token');
 
       // 1. Phân luồng thiết bị, ví dụ chỉ xử lý cho "zeroclaw"
       if (coreType !== 'zeroclaw') {
         return new Response(JSON.stringify({ error: "Invalid core type" }), { status: 400 });
       }
 
+      if (!deviceId || !deviceToken) {
+        return new Response(JSON.stringify({ error: "Missing id or token parameter" }), { status: 400 });
+      }
+
+      // KV Check
+      if (!env.KV_DEVICES) {
+        return new Response(JSON.stringify({ error: "KV_DEVICES has not been bound" }), { status: 500 });
+      }
+
+      let deviceRecord;
+      try {
+        deviceRecord = await env.KV_DEVICES.get(deviceId, { type: "json" });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "KV Read Error" }), { status: 500 });
+      }
+
+      if (!deviceRecord) {
+        // Register new device as pending
+        await env.KV_DEVICES.put(deviceId, JSON.stringify({
+          status: "pending_approval",
+          token: deviceToken,
+          installedAt: Date.now()
+        }));
+        return new Response(JSON.stringify({ ota_status: "pending_approval" }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // If pending, return pending
+      if (deviceRecord.status !== "approved") {
+        return new Response(JSON.stringify({ ota_status: "pending_approval" }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // If approved, check token
+      if (deviceRecord.token !== deviceToken) {
+        return new Response(JSON.stringify({ error: "Token mismatch! Access Denied" }), { status: 403 });
+      }
+
       // 2. Tạo TOML cấu hình tự động (nhúng API key từ biến môi trường Cloudflare)
-      // Những biến này phải cấu hình tại Cloudflare Dashboard hoặc wrangler.toml
       const telegramIds = env.TELEGRAM_IDS || "975318323, 7237066439";
       const cfAiKey = env.CF_AI_KEY || "your_cloudflare_ai_token";
       const openRouterKey = env.OPENROUTER_KEY || "sk-or-v1-xxx";
       const nvidiaNimKey = env.NVIDIA_NIM_KEY || "nvapi-xxx";
-      
-      const encryptionPassphrase = env.ENCRYPTION_KEY || "sieu_bao_mat_cua_boss";
+
+      // Sử dụng chính Device Token làm mật khẩu cấp phát riêng (Bảo mật Zero-Touch)
+      const encryptionPassphrase = deviceToken;
 
       // Mẫu giao diện TOML 3 lõi do lệnh từ Sếp
       const tomlConfig = `
@@ -83,7 +168,7 @@ allowed_users = [${telegramIds}]
 `;
 
       // 3. Mã hóa File TOML bằng AES-256-CBC OpenSSL Format
-      const encryptedToml = encryptAES_OpenSSL(tomlConfig, encryptionPassphrase);
+      const encryptedToml = await encryptAES_OpenSSL(tomlConfig, encryptionPassphrase);
 
       // 4. Các lệnh Hot Scripts điều khiển từ xa (ADB/Renice)
       const hotScripts = [
@@ -91,7 +176,7 @@ allowed_users = [${telegramIds}]
         "pgrep -f zeroclaw | xargs -r renice -n -20 || true",
         "echo '[OTA] Màn hình thiết bị sẽ không bị tắt nhờ có Termux Wake Lock.'"
       ];
-      
+
       // Zero-Touch Tunnel Binding: Bơm thẳng Token để Service kết nối tự động
       if (env.TUNNEL_TOKEN) {
         hotScripts.push(`zeroclaw tunnel bind ${env.TUNNEL_TOKEN}`);

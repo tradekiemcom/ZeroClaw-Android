@@ -60,46 +60,46 @@ cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 # ============================================================================
 
 OTA_URL="https://ota.tradekiem.com/v1/sync"
-DEVICE_ID=$(getprop ro.serialno 2>/dev/null || echo "note10_boss")
+DEVICE_ID="$(getprop ro.product.model 2>/dev/null | tr -d ' ')-$(getprop ro.serialno 2>/dev/null)"
+if [ "$DEVICE_ID" = "-" ]; then DEVICE_ID="note10_boss"; fi
+
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 
-# Nhập mật khẩu 1 lần duy nhất để lưu lại
+# Tự động tạo Device Token 1 lần duy nhất thay vì hỏi Mật khẩu
 if [ ! -f "$PASSPHRASE_FILE" ]; then
-    echo -e "\033[1;33m[BẢO MẬT] Trạm chỉ huy yêu cầu Khóa Giải Mã Config:\033[0m"
-    echo -e "(Nếu bỏ trống hoặc đợi 10s, hệ thống sẽ BỎ QUA tải cấu hình từ OTA và dùng cấu hình mặc định)"
-    
-    if ! read -t 10 -sp "Nhập Passphrase Sếp Trade Kiếm Cơm: " p; then
-        echo ""
-    else
-        echo ""
-    fi
-    
-    if [ -z "$p" ]; then
-        echo -e "\033[33m[Thông Báo] Bỏ qua OTA Sync. Hệ thống tiếp tục chạy cấu hình nội bộ mặc định.\033[0m"
-        sv restart zeroclaw || true
-        exit 0
-    else
-        echo "$p" > "$PASSPHRASE_FILE"
-    fi
+    echo -e "\033[36m[Zero-Touch] Đang khởi tạo mã bảo mật riêng cho thiết bị...\033[0m"
+    openssl rand -hex 16 > "$PASSPHRASE_FILE"
 fi
+
+DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
 
 echo -e "\033[32mĐang đồng bộ cấu hình bảo mật từ OTA Worker ($OTA_URL)...\033[0m"
-DOWNLOADED=false
 
 # Lần 1: Thử link chính
-raw_data=$(curl -s --max-time 15 "$OTA_URL?id=$DEVICE_ID&core=zeroclaw")
+raw_data=$(curl -s --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
 enc_toml=$(echo "$raw_data" | jq -r '.encrypted_toml' 2>/dev/null)
+status=$(echo "$raw_data" | jq -r '.ota_status' 2>/dev/null)
 
 # Fallback: Thử link số 2
-if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
+if [ "$enc_toml" = "null" ] && [ "$status" != "pending_approval" ]; then
     FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
     echo -e "\033[33m[Cảnh Báo] Mất kết nối tới ota.tradekiem.com, tự động chuyển sang Fallback URL: $FALLBACK_URL\033[0m"
-    raw_data=$(curl -s --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&core=zeroclaw")
+    raw_data=$(curl -s --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
     enc_toml=$(echo "$raw_data" | jq -r '.encrypted_toml' 2>/dev/null)
+    status=$(echo "$raw_data" | jq -r '.ota_status' 2>/dev/null)
 fi
 
-status=$(echo "$raw_data" | jq -r '.ota_status' 2>/dev/null)
-pass=$(cat "$PASSPHRASE_FILE")
+pass="$DEVICE_TOKEN"
+
+if [ "$status" = "pending_approval" ]; then
+    echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) đang được đưa vào danh sách chờ OTA!\033[0m"
+    echo -e "Vui lòng mở Cloudflare Dashboard -> Workers & Pages -> KV -> KV_DEVICES"
+    echo -e "Và đổi trạng thái của thiết bị '$DEVICE_ID' thành 'approved' để cấp cấu hình."
+    echo -e "Sẽ thử lại sau 30 giây..."
+    sleep 30
+    sv restart zeroclaw || true
+    exit 0
+fi
 
 if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
     echo -e "\033[31m[LỖI] Phân giải cấu hình OTA thất bại ở cả 2 đường truyền gốc và dự phòng.\033[0m"

@@ -32,18 +32,26 @@ Bởi hệ thống mã hóa OTA của chúng ta dùng thư viện `crypto` của
 4. Gõ thêm chữ `nodejs_compat` vào danh sách cờ rồi lưu lại.
 
 ### Bước 4: Khai Báo Biến Môi Trường (Environment Variables)
-Đến đây bạn khai báo Mật Khẩu và các API Key quan trọng.
-1. Tại Tab **Settings**, chọn mục **Variables** (Biến số).
-2. Cuộn xuống phần **Environment Variables** và bấm **Edit variables** (Thêm biến/Sửa biến).
+Đến đây bạn khai báo các API Key quan trọng.
+1. Tại Tab **Settings**, chọn mục **Variables and Secrets** (Biến số).
+2. Cuộn xuống phần **Environment Variables** và bấm **Edit variables**.
 3. Lần lượt bấm Add variable và nhập ĐÚNG các tên biến sau bên cột trái, và Cấu hình mẫu ở cột phải:
    - `OTA_VERSION`: Nhập `1.2.6` (Hoặc số phiên bản bạn lưu ý).
-   - `TELEGRAM_IDS`: Nhập `975318323, 7237066439` (ID của Sếp để cấp quyền lệnh bot Telegram).
-   - `ENCRYPTION_KEY`: Nhập một Mật Khẩu bí mật bất kì, ví dụ `TradeKiemCom123@!`. *(**Lưu ý**: Đây chính xác là cái Passphrase điện thoại sẽ hỏi ở Bước Dán Cấu Hình lúc Setup)*
+   - `TELEGRAM_IDS`: Nhập `975318323, 7237066439`.
    - `TUNNEL_TOKEN`: Nhập Token do Cloudflare cấp của Tunnel Zero Trust.
    - `OPENROUTER_KEY`: Nhập khóa API của OpenRouter.
-   - `CF_AI_KEY`: Nhập khóa API cho mô hình nội bộ của Cloudflare (nếu có).
-   - `NVIDIA_NIM_KEY`: Nhập khóa NVIDIA (nếu có).
+   - `CF_AI_KEY` / `NVIDIA_NIM_KEY`: Nhập khóa API mô hình tương ứng (nếu có).
 4. Bấm **Save and deploy**.
+
+### Bước 5: (Bắt Buộc) Liên Kết CSDL Quản Trị Thiết Bị (KV Namespace)
+Hệ thống sử dụng mô hình MDM Zero-Touch: thiết bị điện thoại tự sinh mã Token riêng biệt. Bạn cần cấp cho Worker một công cụ để lưu trữ danh sách thiết bị.
+1. Ở cột Menu Cloudflare phía ngoài cùng bên trái, chọn **Workers & Pages** -> **KV**.
+2. Bấm **Create a namespace**, nhập tên là `DEVICES` (hoặc `KV_DEVICES`) rồi bấm Add.
+3. Quay lại trang cấu hình của Worker `zeroclaw-ota-server`. 
+4. Chuyển sang Tab **Settings** -> **Bindings** -> Bấm **Add**.
+5. Chọn loại **KV Namespace**, điền phần `Variable name` là `KV_DEVICES` và chọn tên KV bạn vừa tạo. Bấm Save.
+
+*Lưu ý: Sau khi điện thoại chạy cài đặt `install.sh`, mã thiết bị (Ví dụ: `SM-N975F-XYZ`) sẽ hiện trong Namespace KV này với trạng thái `pending_approval`. Bạn chỉ cần vào đây, edit object thiết bị đó thành `"status": "approved"` thì điện thoại tự động bốc được file OTA mã hoá về chạy!*
 
 ### Bước 5: (Tùy chọn) Ràng Buộc Tên Miền
 1. Trở về Tab **Settings**, chọn **Triggers**.
@@ -59,7 +67,9 @@ Nếu bạn có sẵn MacOS/Linux/Windows Terminal.
 
 ### Bước 1: Cấu hình mã nguồn
 1. Mở file `ota-server/wrangler.toml` trên máy bạn.
-2. Điền sẵn các giá trị cấu hình vào khu vực `[vars]`. (Ví dụ: `ENCRYPTION_KEY = "MatDauBaoMatCuaSep"`).
+2. Dùng lệnh sau để tạo KV Namespace tự động: `npx wrangler kv:namespace create DEVICES`
+3. Lệnh sẽ in ra màn hình 3 dòng mã. Bạn copy dòng có khoá `id=".......""` và dán vào file `wrangler.toml` ở mục `[[kv_namespaces]]`.
+4. Điền sẵn các giá trị cấu hình API Key vào khu vực `[vars]`.
 3. Sửa định tuyến (Routes) nếu bạn muốn đẩy thẳng lên tên miền bạn sở hữu.
 
 ### Bước 2: Tải Wrangler và Đẩy Mạng
