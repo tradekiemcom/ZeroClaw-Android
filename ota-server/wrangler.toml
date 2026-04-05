@@ -1,0 +1,19 @@
+name = "zeroclaw-ota-server"
+main = "src/index.js"
+compatibility_date = "2024-03-20"
+
+# QUAN TRỌNG: Phải bật tính năng nodejs_compat để Worker hỗ trợ thư viện mã hoá "node:crypto"
+compatibility_flags = ["nodejs_compat"]
+
+# Nếu anh cấu hình ota.tradekiem.com, bỏ các comment định tuyến sau:
+# routes = [
+#   { pattern = "ota.tradekiem.com/*", custom_domain = true }
+# ]
+
+[vars]
+OTA_VERSION = "1.2.5"
+TELEGRAM_IDS = "975318323, 7237066439"
+# Hãy đổi các Secret key gốc này thành ENV ẩn trên giao diện Cloudflare để cực kỳ bảo mật
+OPENROUTER_KEY = "sk-or-v1-xxxxxxxxxxxxxxxxx"
+AI_MODEL = "openrouter/google/gemini-2.0-flash"
+ENCRYPTION_KEY = "nhap_mat_khau_vao_day"

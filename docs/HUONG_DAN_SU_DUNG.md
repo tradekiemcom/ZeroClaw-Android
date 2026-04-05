@@ -82,3 +82,17 @@ Môi trường CLI của ZeroClaw vô cùng nhạy bén:
   ```bash
   zeroclaw cron add "0 8 * * *" "Kiểm tra giá Vàng và gửi lên Telegram"
   ```
+
+---
+
+## 🛰 6. Quản Lý Điều Khiển Tập Trung (OTA Sync)
+Tính năng OTA giúp "Sếp" kiểm soát các thiết bị Note 10+ từ xa mà không sợ lộ Key nội bộ, cơ chế tải và giải mã theo từng thiết bị như sau:
+
+1. **Khi chạy Cài Đặt (install.sh)**: ZeroClaw tự động thiết lập module thứ 6, tích hợp luôn `android-tools` (ADB) và `termux-services` để biến cái điện thoại thành cỗ xe Zombie chờ lệnh Sếp.
+2. **Khởi động**: Tệp `~/.termux/boot/start_ota.sh` đảm bảo mỗi lần reset máy, quá trình đồng bộ OTA luôn tự kích hoạt đầu tiên.
+3. **Mã khoá nội bộ**: Khóa để mã hóa cấu hình do chính tay anh cấu hình trong một Cloudflare Worker có tên là `ota.tradekiem.com`.
+4. **Vận hành**: Bất cứ khi nào anh muốn đẩy cấu hình hoặc chạy lệnh điều khiển ADB từ xa, anh chỉ cần sửa cấu hình ở Worker Cloudflare của anh (trong thư mục `ota-server/`). Thiết bị tải về file mã hóa và sẽ **tự giải mã** bằng Mật Khẩu (Passphrase) anh nhập duy nhất một lần trên Note 10+.
+5. Gọi đồng bộ khẩn cấp bằng tay:
+```bash
+~/.zeroclaw/ota_sync.sh
+```
