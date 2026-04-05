@@ -12,6 +12,7 @@ Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw
 ## 📙 Hướng Dẫn Sử Dụng
 Mọi chi tiết về cách cấu hình ZeroClaw sau cài đặt đều nằm ở đây:
 👉 **[TÀI LIỆU HƯỚNG DẪN KỸ THUẬT (Tiếng Việt)](docs/HUONG_DAN_SU_DUNG.md)**
+👉 **[HƯỚNG DẪN TẠO TRẠM CLOUDFLARE OTA WORKER (Tiếng Việt)](docs/HUONG_DAN_TAO_OTA_WORKER.md)**
 
 ## 🚀 Cài Đặt Nhanh (trên thiết bị Android > Termux)
 ```bash
