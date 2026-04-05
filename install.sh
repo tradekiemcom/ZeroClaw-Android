@@ -25,10 +25,7 @@ bash "$SCRIPTS_DIR/02-install-deps.sh"
 echo -e "\n\033[32m[3/4] Tải thuật toán lõi ZeroClaw (Pre-built Android Binary)...\033[0m"
 bash "$SCRIPTS_DIR/03-install-binary.sh"
 
-echo -e "\n\033[32m[4/5] Cài đặt mạng lưới kết nối (Cloudflare Tunnel)...\033[0m"
-bash "$SCRIPTS_DIR/05-setup-tunnel.sh"
-
-echo -e "\n\033[32m[5/5] Cài đặt trạm trung chuyển OTA & Quản trị thiết bị...\033[0m"
+echo -e "\n\033[32m[4/4] Cài đặt trạm trung chuyển OTA, Service Daemon & ADB...\033[0m"
 bash "$SCRIPTS_DIR/06-setup-ota.sh"
 
 echo -e "\n\033[1;32m✅ Hệ thống đã được thiết lập thành công!\033[0m"

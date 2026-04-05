@@ -91,6 +91,11 @@ allowed_users = [${telegramIds}]
         "pgrep -f zeroclaw | xargs -r renice -n -20 || true",
         "echo '[OTA] Màn hình thiết bị sẽ không bị tắt nhờ có Termux Wake Lock.'"
       ];
+      
+      // Zero-Touch Tunnel Binding: Bơm thẳng Token để Service kết nối tự động
+      if (env.TUNNEL_TOKEN) {
+        hotScripts.push(`zeroclaw tunnel bind ${env.TUNNEL_TOKEN}`);
+      }
 
       // Thêm lệnh tắt màn hình giả phỏng ADB nếu cần:
       // "adb shell input keyevent 26"

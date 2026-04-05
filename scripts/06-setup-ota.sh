@@ -37,6 +37,20 @@ privileged_users = [975318323, 7237066439]
 allowed_users = [975318323, 7237066439]
 EOF
 
+# ----------------------------------------------------
+# Cấu hình kiến trúc Auto-Start bằng Termux-Services
+# ----------------------------------------------------
+echo -e "\033[36mKích hoạt dịch vụ ngầm Termux Service...\033[0m"
+mkdir -p "$PREFIX/var/service/zeroclaw/log"
+echo "#!/usr/bin/env bash" > "$PREFIX/var/service/zeroclaw/run"
+echo "exec zeroclaw gateway 2>&1" >> "$PREFIX/var/service/zeroclaw/run"
+chmod +x "$PREFIX/var/service/zeroclaw/run"
+
+echo "#!/usr/bin/env bash" > "$PREFIX/var/service/zeroclaw/log/run"
+echo "svlogd -tt ~/.zeroclaw/log" >> "$PREFIX/var/service/zeroclaw/log/run"
+chmod +x "$PREFIX/var/service/zeroclaw/log/run"
+mkdir -p ~/.zeroclaw/log
+
 # Tạo script đồng bộ OTA
 cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 #!/usr/bin/env bash
@@ -83,16 +97,15 @@ if [ $? -eq 0 ]; then
         eval "$cmd"
     done
     
-    # Khởi động lại hệ thống sạch
-    pkill -f "zeroclaw daemon" || true
+    # Khởi động lại hệ thống bằng cách kick Service
     if command -v termux-wake-lock >/dev/null 2>&1; then termux-wake-lock; fi
     if command -v adb >/dev/null 2>&1; then 
         echo "Kết nối ADB nội hạt..."
         adb connect localhost:5555 || true
     fi
     
-    echo -e "\033[1;33mĐang kích hoạt lại Daemon ngầm...\033[0m"
-    zeroclaw daemon &
+    echo -e "\033[1;33mĐang kích hoạt lại Service quản trị ngầm...\033[0m"
+    sv restart zeroclaw || true
     
     echo -e "\033[1;32m>>> HỆ THỐNG ĐÃ SẴN SÀNG. BOSS CÓ QUYỀN FULL! <<<\033[0m"
 else
@@ -103,12 +116,16 @@ EOF
 
 chmod +x ~/.zeroclaw/ota_sync.sh
 
-# Gắn vào Termux boot (Khởi động cùng thiết bị)
+# Bật service mặc định cho các phiên khởi động
+if command -v sv-enable >/dev/null 2>&1; then
+    sv-enable zeroclaw
+fi
+
+# Gắn vào Termux boot để luôn chọc lấy OTA ngay khi lên màn hình
 cat << 'EOF' > ~/.termux/boot/start_ota.sh
 #!/usr/bin/env bash
-# Termux Wake Lock để chống ngủ gật màn hình
 termux-wake-lock
-# Gọi tiến trình OTA Check
+# Tiến trình chạy OTA, nạp xong nó sẽ tự sv restart zeroclaw bên trong
 bash ~/.zeroclaw/ota_sync.sh >> ~/.zeroclaw/ota_boot.log 2>&1
 EOF
 chmod +x ~/.termux/boot/start_ota.sh
