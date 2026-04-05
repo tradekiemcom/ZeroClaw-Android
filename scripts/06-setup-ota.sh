@@ -66,9 +66,17 @@ PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 # Nhập mật khẩu 1 lần duy nhất để lưu lại
 if [ ! -f "$PASSPHRASE_FILE" ]; then
     echo -e "\033[1;33m[BẢO MẬT] Trạm chỉ huy yêu cầu Khóa Giải Mã Config:\033[0m"
+    echo -e "(Nếu bỏ trống, hệ thống sẽ BỎ QUA tải cấu hình từ OTA và dùng cấu hình mặc định)"
     read -sp "Nhập Passphrase Sếp Trade Kiếm Cơm: " p
-    echo "$p" > "$PASSPHRASE_FILE"
     echo ""
+    
+    if [ -z "$p" ]; then
+        echo -e "\033[33m[Thông Báo] Bỏ qua OTA Sync. Hệ thống tiếp tục chạy cấu hình nội bộ mặc định.\033[0m"
+        sv restart zeroclaw || true
+        exit 0
+    else
+        echo "$p" > "$PASSPHRASE_FILE"
+    fi
 fi
 
 echo -e "\033[32mĐang đồng bộ cấu hình bảo mật từ OTA Worker ($OTA_URL)...\033[0m"
@@ -81,13 +89,16 @@ status=$(echo "$raw_data" | jq -r '.ota_status')
 
 if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
     echo -e "\033[31m[LỖI] Máy chủ OTA không trả về file mã hoá. Kiểm tra lại Mạng/Domain.\033[0m"
+    sv restart zeroclaw || true
     exit 1
 fi
 
 # Thực thi giải mã AES-256-CBC theo chuẩn OpenSSL PBKDF2
-echo "$enc_toml" | openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$pass" > ~/.config/zeroclaw/config.toml 2>/dev/null
+# Lưu file config tạm để tránh phá hủy file config gốc nếu giải mã sai
+echo "$enc_toml" | openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$pass" > ~/.config/zeroclaw/config.toml.temp 2>/dev/null
 
 if [ $? -eq 0 ]; then
+    mv ~/.config/zeroclaw/config.toml.temp ~/.config/zeroclaw/config.toml
     echo -e "\033[1;32m✅ Giải mã Config thành công!\033[0m"
     
     # Thực thi các lệnh điều khiển thiết bị từ xa (Hot Scripts)
@@ -109,8 +120,10 @@ if [ $? -eq 0 ]; then
     
     echo -e "\033[1;32m>>> HỆ THỐNG ĐÃ SẴN SÀNG. BOSS CÓ QUYỀN FULL! <<<\033[0m"
 else
-    echo -e "\033[31m[LỖI] Sai Passphrase hoặc nội dung cấu hình bị hỏng. Cập nhật thất bại!\033[0m"
-    rm -f ~/.config/zeroclaw/config.toml
+    echo -e "\033[31m[LỖI] Sai Passphrase! Giữ nguyên cấu hình gốc. Mật khẩu lưu trữ đã bị xoá.\033[0m"
+    rm -f ~/.config/zeroclaw/config.toml.temp
+    rm -f "$PASSPHRASE_FILE"
+    sv restart zeroclaw || true
 fi
 EOF
 
