@@ -11,9 +11,10 @@ compatibility_flags = ["nodejs_compat"]
 # ]
 
 [vars]
-OTA_VERSION = "1.2.5"
+OTA_VERSION = "1.2.6"
 TELEGRAM_IDS = "975318323, 7237066439"
-# Hãy đổi các Secret key gốc này thành ENV ẩn trên giao diện Cloudflare để cực kỳ bảo mật
+# Secret keys ẩn trên Cloudflare Dashboard (Chỉ điền mẫu tại đây)
+CF_AI_KEY = "cf_ai_token_xxxxx"
 OPENROUTER_KEY = "sk-or-v1-xxxxxxxxxxxxxxxxx"
-AI_MODEL = "openrouter/google/gemini-2.0-flash"
+NVIDIA_NIM_KEY = "nvapi-xxxxxxxxxxxxxxxxx"
 ENCRYPTION_KEY = "nhap_mat_khau_vao_day"

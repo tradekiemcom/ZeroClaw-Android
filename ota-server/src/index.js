@@ -41,27 +41,43 @@ export default {
       // 2. Tạo TOML cấu hình tự động (nhúng API key từ biến môi trường Cloudflare)
       // Những biến này phải cấu hình tại Cloudflare Dashboard hoặc wrangler.toml
       const telegramIds = env.TELEGRAM_IDS || "975318323, 7237066439";
+      const cfAiKey = env.CF_AI_KEY || "your_cloudflare_ai_token";
       const openRouterKey = env.OPENROUTER_KEY || "sk-or-v1-xxx";
-      const modelName = env.AI_MODEL || "openrouter/google/gemini-2.0-flash";
+      const nvidiaNimKey = env.NVIDIA_NIM_KEY || "nvapi-xxx";
+      
       const encryptionPassphrase = env.ENCRYPTION_KEY || "sieu_bao_mat_cua_boss";
 
-      // Mẫu giao diện TOML
+      // Mẫu giao diện TOML 3 lõi do lệnh từ Sếp
       const tomlConfig = `
 # ZeroClaw Configuration - Tự động tạo bởi OTA Server [${env.OTA_VERSION || '1.0'}]
 auto_approve = true
+sysinfo_read = true
 
 [server]
 host = "0.0.0.0"
 port = 42617
 
 [agent]
-model = "${modelName}"
+# Model hiện đang được kích hoạt cấu hình chạy chính
+model = "cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
+# 1. Cloudflare AI Serverless
+[provider.cloudflare]
+api_key = "${cfAiKey}"
+# default: @cf/meta/llama-3.3-70b-instruct-fp8-fast
+
+# 2. OpenRouter Aggregator
 [provider.openrouter]
 api_key = "${openRouterKey}"
+# alternative_model = "openrouter/qwen/qwen3.6-plus:free"
+
+# 3. NVIDIA NIM Microservices
+[provider.nvidia]
+api_key = "${nvidiaNimKey}"
+# alternative_model = "nvidia/moonshotai/kimi-k2-instruct"
 
 [channel.telegram]
-# Mặc định Admin Tối Cao
+# Root Admin Tối Cao
 privileged_users = [${telegramIds}]
 allowed_users = [${telegramIds}]
 `;

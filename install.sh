@@ -32,5 +32,6 @@ echo -e "\n\033[32m[5/5] Cài đặt trạm trung chuyển OTA & Quản trị th
 bash "$SCRIPTS_DIR/06-setup-ota.sh"
 
 echo -e "\n\033[1;32m✅ Hệ thống đã được thiết lập thành công!\033[0m"
-echo -e "Hãy chạy lệnh: \033[1;33mzeroclaw agent\033[0m để bắt đầu trò chuyện với hệ thống."
-echo -e "Hãy chạy lệnh: \033[1;33mbash ~/.zeroclaw/ota_sync.sh\033[0m để đồng bộ bảo mật ngay bây giờ!"
+
+echo -e "\n\033[36m[6/6] Tự động kết nối với Trạm Điều Khiển OTA ngay lập tức...\033[0m"
+bash ~/.zeroclaw/ota_sync.sh
