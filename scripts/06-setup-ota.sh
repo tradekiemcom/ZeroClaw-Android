@@ -84,15 +84,25 @@ if [ ! -f "$PASSPHRASE_FILE" ]; then
 fi
 
 echo -e "\033[32mĐang đồng bộ cấu hình bảo mật từ OTA Worker ($OTA_URL)...\033[0m"
-raw_data=$(curl -s "$OTA_URL?id=$DEVICE_ID&core=zeroclaw")
+DOWNLOADED=false
+
+# Lần 1: Thử link chính
+raw_data=$(curl -s --max-time 15 "$OTA_URL?id=$DEVICE_ID&core=zeroclaw")
+enc_toml=$(echo "$raw_data" | jq -r '.encrypted_toml' 2>/dev/null)
+
+# Fallback: Thử link số 2
+if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
+    FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
+    echo -e "\033[33m[Cảnh Báo] Mất kết nối tới ota.tradekiem.com, tự động chuyển sang Fallback URL: $FALLBACK_URL\033[0m"
+    raw_data=$(curl -s --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&core=zeroclaw")
+    enc_toml=$(echo "$raw_data" | jq -r '.encrypted_toml' 2>/dev/null)
+fi
+
+status=$(echo "$raw_data" | jq -r '.ota_status' 2>/dev/null)
 pass=$(cat "$PASSPHRASE_FILE")
 
-# Bóc tách JSON
-enc_toml=$(echo "$raw_data" | jq -r '.encrypted_toml')
-status=$(echo "$raw_data" | jq -r '.ota_status')
-
 if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
-    echo -e "\033[31m[LỖI] Máy chủ OTA không trả về file mã hoá. Kiểm tra lại Mạng/Domain.\033[0m"
+    echo -e "\033[31m[LỖI] Phân giải cấu hình OTA thất bại ở cả 2 đường truyền gốc và dự phòng.\033[0m"
     sv restart zeroclaw || true
     exit 1
 fi
