@@ -66,9 +66,13 @@ PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 # Nhập mật khẩu 1 lần duy nhất để lưu lại
 if [ ! -f "$PASSPHRASE_FILE" ]; then
     echo -e "\033[1;33m[BẢO MẬT] Trạm chỉ huy yêu cầu Khóa Giải Mã Config:\033[0m"
-    echo -e "(Nếu bỏ trống, hệ thống sẽ BỎ QUA tải cấu hình từ OTA và dùng cấu hình mặc định)"
-    read -sp "Nhập Passphrase Sếp Trade Kiếm Cơm: " p
-    echo ""
+    echo -e "(Nếu bỏ trống hoặc đợi 10s, hệ thống sẽ BỎ QUA tải cấu hình từ OTA và dùng cấu hình mặc định)"
+    
+    if ! read -t 10 -sp "Nhập Passphrase Sếp Trade Kiếm Cơm: " p; then
+        echo ""
+    else
+        echo ""
+    fi
     
     if [ -z "$p" ]; then
         echo -e "\033[33m[Thông Báo] Bỏ qua OTA Sync. Hệ thống tiếp tục chạy cấu hình nội bộ mặc định.\033[0m"
