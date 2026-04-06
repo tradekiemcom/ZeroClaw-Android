@@ -72,8 +72,16 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // API Endpoint: /v1/sync?id=xxx&core=zeroclaw
+    // API Endpoint: /v1/sync?id=xxx&token=yyy&core=zeroclaw
     if (url.pathname === '/v1/sync') {
+      // 0. Kiểm tra hạ tầng Cloudflare Worker (KV Binding)
+      if (!env.KV_DEVICES) {
+        return new Response(JSON.stringify({ 
+          error: "Chưa cấu hình KV Binding!",
+          suggestion: "Vào Settings -> Bindings -> Add KV Namespace với Variable Name là 'KV_DEVICES'"
+        }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      }
+
       const deviceId = url.searchParams.get('id');
       const coreType = url.searchParams.get('core');
       const deviceToken = url.searchParams.get('token');
@@ -84,12 +92,10 @@ export default {
       }
 
       if (!deviceId || !deviceToken) {
-        return new Response(JSON.stringify({ error: "Missing id or token parameter" }), { status: 400 });
-      }
-
-      // KV Check
-      if (!env.KV_DEVICES) {
-        return new Response(JSON.stringify({ error: "KV_DEVICES has not been bound" }), { status: 500 });
+        return new Response(JSON.stringify({ 
+          error: "Thiếu tham số định danh!",
+          received: { id: deviceId, token: deviceToken }
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       }
 
       let deviceRecord;
