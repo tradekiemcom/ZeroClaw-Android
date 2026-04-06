@@ -41,14 +41,22 @@ EOF
 # Cấu hình kiến trúc Auto-Start bằng Termux-Services
 # ----------------------------------------------------
 echo -e "\033[36mKích hoạt dịch vụ ngầm Termux Service...\033[0m"
-mkdir -p "$PREFIX/var/service/zeroclaw/log"
-echo "#!/usr/bin/env bash" > "$PREFIX/var/service/zeroclaw/run"
-echo "exec zeroclaw gateway 2>&1" >> "$PREFIX/var/service/zeroclaw/run"
-chmod +x "$PREFIX/var/service/zeroclaw/run"
+export SVDIR="$PREFIX/var/service"
+mkdir -p "$SVDIR/zeroclaw/log"
 
-echo "#!/usr/bin/env bash" > "$PREFIX/var/service/zeroclaw/log/run"
-echo "svlogd -tt ~/.zeroclaw/log" >> "$PREFIX/var/service/zeroclaw/log/run"
-chmod +x "$PREFIX/var/service/zeroclaw/log/run"
+# Tìm và kill bất kỳ tiến trình nào đang chiếm Port 42617 (Xử lý lỗi Port already in use)
+if command -v lsof >/dev/null 2>&1; then
+    echo "Đang kiểm tra và giải phóng Port 42617..."
+    lsof -ti:42617 | xargs kill -9 2>/dev/null || true
+fi
+
+echo "#!/usr/bin/env bash" > "$SVDIR/zeroclaw/run"
+echo "exec zeroclaw gateway 2>&1" >> "$SVDIR/zeroclaw/run"
+chmod +x "$SVDIR/zeroclaw/run"
+
+echo "#!/usr/bin/env bash" > "$SVDIR/zeroclaw/log/run"
+echo "svlogd -tt ~/.zeroclaw/log" >> "$SVDIR/zeroclaw/log/run"
+chmod +x "$SVDIR/zeroclaw/log/run"
 mkdir -p ~/.zeroclaw/log
 
 # Tạo script đồng bộ OTA
@@ -59,16 +67,30 @@ cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 # Tải và giải mã cấu hình tập trung từ Sếp Trade Kiếm Cơm
 # ============================================================================
 
+export SVDIR="$PREFIX/var/service"
+# Cập nhật hash lệnh cho phiên bash hiện tại
+hash -r 2>/dev/null || true
+
 OTA_URL="https://ota.tradekiem.com/v1/sync"
 DEVICE_ID="$(getprop ro.product.model 2>/dev/null | tr -d ' ')-$(getprop ro.serialno 2>/dev/null)"
 if [ "$DEVICE_ID" = "-" ]; then DEVICE_ID="note10_boss"; fi
 
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 
+# Giải phóng Port 42617 trước khi restart service để tránh lỗi Address already in use
+if command -v lsof >/dev/null 2>&1; then
+    lsof -ti:42617 | xargs kill -9 2>/dev/null || true
+fi
+
 # Tự động tạo Device Token 1 lần duy nhất thay vì hỏi Mật khẩu
 if [ ! -f "$PASSPHRASE_FILE" ]; then
     echo -e "\033[36m[Zero-Touch] Đang khởi tạo mã bảo mật riêng cho thiết bị...\033[0m"
-    openssl rand -hex 16 > "$PASSPHRASE_FILE"
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -hex 16 > "$PASSPHRASE_FILE"
+    else
+        echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl. Sẽ dừng setup.\033[0m"
+        exit 1
+    fi
 fi
 
 DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
@@ -134,9 +156,8 @@ if [ $? -eq 0 ]; then
     
     echo -e "\033[1;32m>>> HỆ THỐNG ĐÃ SẴN SÀNG. BOSS CÓ QUYỀN FULL! <<<\033[0m"
 else
-    echo -e "\033[31m[LỖI] Sai Passphrase! Giữ nguyên cấu hình gốc. Mật khẩu lưu trữ đã bị xoá.\033[0m"
+    echo -e "\033[31m[LỖI] Giải mã OTA lỗi. Có thể do Token sai.\033[0m"
     rm -f ~/.config/zeroclaw/config.toml.temp
-    rm -f "$PASSPHRASE_FILE"
     sv restart zeroclaw || true
 fi
 EOF
@@ -145,6 +166,7 @@ chmod +x ~/.zeroclaw/ota_sync.sh
 
 # Bật service mặc định cho các phiên khởi động
 if command -v sv-enable >/dev/null 2>&1; then
+    export SVDIR="$PREFIX/var/service"
     sv-enable zeroclaw
 fi
 

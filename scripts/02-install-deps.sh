@@ -13,6 +13,9 @@ pkg install -y \
 # Lệnh nâng cấp CA certificates để phòng tránh lỗi SSL khi curl tải Github API
 pkg install -y ca-certificates
 
+# Cập nhật danh sách lệnh cho shell hiện tại
+hash -r
+
 # Tạo thư mục tạm an toàn trên bộ nhớ Android (Tránh lỗi Path/Hardlink)
 mkdir -p "$PREFIX/tmp"
 export TMPDIR="$PREFIX/tmp"

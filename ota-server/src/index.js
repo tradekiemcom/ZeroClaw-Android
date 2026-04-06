@@ -148,17 +148,17 @@ model = "cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 # 1. Cloudflare AI Serverless
 [provider.cloudflare]
-api_key = "${cfAiKey}"
+token = "${cfAiKey}"
 # default: @cf/meta/llama-3.3-70b-instruct-fp8-fast
 
 # 2. OpenRouter Aggregator
 [provider.openrouter]
-api_key = "${openRouterKey}"
+token = "${openRouterKey}"
 # alternative_model = "openrouter/qwen/qwen3.6-plus:free"
 
 # 3. NVIDIA NIM Microservices
 [provider.nvidia]
-api_key = "${nvidiaNimKey}"
+token = "${nvidiaNimKey}"
 # alternative_model = "nvidia/moonshotai/kimi-k2-instruct"
 
 [channel.telegram]
