@@ -43,6 +43,11 @@ echo -e "\033[36mKích hoạt dịch vụ ngầm Termux Service...\033[0m"
 export SVDIR="$PREFIX/var/service"
 mkdir -p "$SVDIR/zeroclaw/log"
 
+# Đảm bảo trình quản lý dịch vụ của Termux đã chạy
+if command -v service-daemon >/dev/null 2>&1; then
+    service-daemon start || true
+fi
+
 # Tìm và kill bất kỳ tiến trình nào đang chiếm Port 42617 (Xử lý lỗi Port already in use)
 if command -v lsof >/dev/null 2>&1; then
     echo "Đang kiểm tra và giải phóng Port 42617..."
@@ -74,6 +79,7 @@ cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 # ============================================================================
 
 export SVDIR="/data/data/com.termux/files/usr/var/service"
+SERVICE_PATH="$SVDIR/zeroclaw"
 hash -r 2>/dev/null || true
 
 OTA_URL="https://ota.tradekiem.com/v1/sync"
@@ -118,14 +124,16 @@ if [ "$status" = "pending_approval" ]; then
     echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) chờ được duyệt trên Cloudflare KV!\033[0m"
     echo -e "Vui lòng đổi trạng thái thiết bị thành 'approved' trong KV 'KV_DEVICES'."
     sleep 30
-    SVDIR=$SVDIR sv restart zeroclaw || true
+    sv restart "$SERVICE_PATH" || true
     exit 0
 fi
 
 if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
     echo -e "\033[31m[LỖI] Phân giải OTA thất bại.\033[0m"
-    echo -e "Nội dung nhận được từ Server: \n$raw_data"
-    SVDIR=$SVDIR sv restart zeroclaw || true
+    echo -e "--- NỘI DUNG SERVER PHẢN HỒI ---"
+    echo -e "$raw_data"
+    echo -e "--------------------------------"
+    sv restart "$SERVICE_PATH" || true
     exit 1
 fi
 
@@ -141,11 +149,11 @@ if [ $? -eq 0 ]; then
     if command -v termux-wake-lock >/dev/null 2>&1; then termux-wake-lock; fi
     if command -v adb >/dev/null 2>&1; then adb connect localhost:5555 || true; fi
     
-    SVDIR=$SVDIR sv restart zeroclaw || true
+    sv restart "$SERVICE_PATH" || true
     echo -e "\033[1;32m>>> HỆ THỐNG ĐÃ SẴN SÀNG <<<\033[0m"
 else
-    echo -e "\033[31m[LỖI] Giải mã OTA lỗi.\033[0m"
-    SVDIR=$SVDIR sv restart zeroclaw || true
+    echo -e "\033[31m[LỖI] Giải mã OTA lỗi. Có thể do Token sai.\033[0m"
+    sv restart "$SERVICE_PATH" || true
 fi
 EOF
 
@@ -153,7 +161,7 @@ chmod +x ~/.zeroclaw/ota_sync.sh
 
 # Bật service mặc định
 if command -v sv-enable >/dev/null 2>&1; then
-    SVDIR=$PREFIX/var/service sv-enable zeroclaw
+    sv-enable zeroclaw
 fi
 
 # Gắn vào Termux boot
