@@ -78,28 +78,29 @@ cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 # Tải và giải mã cấu hình tập trung từ Sếp Trade Kiếm Cơm
 # ============================================================================
 
+USR_BIN="/data/data/com.termux/files/usr/bin"
 export SVDIR="/data/data/com.termux/files/usr/var/service"
 SERVICE_PATH="$SVDIR/zeroclaw"
 hash -r 2>/dev/null || true
 
 OTA_URL="https://ota.tradekiem.com/v1/sync"
-DEVICE_ID="$(getprop ro.product.model 2>/dev/null | tr -d ' ')-$(getprop ro.serialno 2>/dev/null)"
+DEVICE_ID="$($USR_BIN/getprop ro.product.model 2>/dev/null | tr -d ' ')-$($USR_BIN/getprop ro.serialno 2>/dev/null)"
 if [ "$DEVICE_ID" = "-" ]; then DEVICE_ID="note10_boss"; fi
 
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 
 # Giải phóng Port 42617 trước khi restart service
-if command -v lsof >/dev/null 2>&1; then
-    lsof -ti:42617 | xargs kill -9 2>/dev/null || true
+if [ -f "$USR_BIN/lsof" ]; then
+    $USR_BIN/lsof -ti:42617 | xargs kill -9 2>/dev/null || true
 fi
 
 # Tự động tạo Device Token
 if [ ! -f "$PASSPHRASE_FILE" ]; then
     echo -e "\033[36m[Zero-Touch] Đang khởi tạo mã bảo mật riêng cho thiết bị...\033[0m"
-    if command -v openssl >/dev/null 2>&1; then
-        openssl rand -hex 16 > "$PASSPHRASE_FILE"
+    if [ -f "$USR_BIN/openssl" ]; then
+        $USR_BIN/openssl rand -hex 16 > "$PASSPHRASE_FILE"
     else
-        echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl.\033[0m"
+        echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl tại $USR_BIN/openssl.\033[0m"
         exit 1
     fi
 fi
@@ -109,22 +110,22 @@ DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
 echo -e "\033[32mĐang đồng bộ cấu hình bảo mật (ID: $DEVICE_ID)...\033[0m"
 
 # Lần 1: Thử link chính
-raw_data=$(curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
+raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
 if [ $? -ne 0 ]; then
     FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
     echo -e "\033[33m[Cảnh Báo] ota.tradekiem.com lỗi/timeout, chuyển sang Fallback...\033[0m"
-    raw_data=$(curl -s -f --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
+    raw_data=$($USR_BIN/curl -s -f --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
 fi
 
-enc_toml=$(echo "$raw_data" | jq -r '.encrypted_toml' 2>/dev/null)
-status=$(echo "$raw_data" | jq -r '.ota_status' 2>/dev/null)
+enc_toml=$(echo "$raw_data" | $USR_BIN/jq -r '.encrypted_toml' 2>/dev/null)
+status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
 pass="$DEVICE_TOKEN"
 
 if [ "$status" = "pending_approval" ]; then
     echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) chờ được duyệt trên Cloudflare KV!\033[0m"
     echo -e "Vui lòng đổi trạng thái thiết bị thành 'approved' trong KV 'KV_DEVICES'."
     sleep 30
-    sv restart "$SERVICE_PATH" || true
+    $USR_BIN/sv restart "$SERVICE_PATH" || true
     exit 0
 fi
 
@@ -133,11 +134,11 @@ if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
     echo -e "--- NỘI DUNG SERVER PHẢN HỒI ---"
     echo -e "$raw_data"
     echo -e "--------------------------------"
-    sv restart "$SERVICE_PATH" || true
+    $USR_BIN/sv restart "$SERVICE_PATH" || true
     exit 1
 fi
 
-echo "$enc_toml" | openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$pass" > ~/.config/zeroclaw/config.toml.temp 2>/dev/null
+echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$pass" > ~/.config/zeroclaw/config.toml.temp 2>/dev/null
 
 if [ $? -eq 0 ]; then
     mv ~/.config/zeroclaw/config.toml.temp ~/.config/zeroclaw/config.toml

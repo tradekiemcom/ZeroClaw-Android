@@ -1,17 +1,26 @@
 #!/bin/bash
 set -e
 
+echo "[Thông tin] Cập nhật danh sách gói Termux..."
+pkg update -y || { echo -e "\033[33m[Cảnh Báo] pkg update thất bại, thử dùng pkg upgrade...\033[0m"; pkg upgrade -y; }
+
 echo "[Thông tin] Cài đặt các công cụ trích xuất và kết nối mạng..."
-pkg update -y
 pkg install -y \
     curl \
     jq \
     wget \
     tar \
-    openssl
+    openssl \
+    ca-certificates \
+    lsof
 
-# Lệnh nâng cấp CA certificates để phòng tránh lỗi SSL khi curl tải Github API
-pkg install -y ca-certificates
+# Kiểm tra sự tồn tại của các lệnh quan trọng
+for cmd in openssl jq curl; do
+    if ! command -v $cmd &> /dev/null; then
+        echo -e "\033[31m[LỖI] Không thể cài đặt $cmd. Vui lòng kiểm tra lại kết nối mạng.\033[0m"
+        exit 1
+    fi
+done
 
 # Cập nhật danh sách lệnh cho shell hiện tại
 hash -r

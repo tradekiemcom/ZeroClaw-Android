@@ -19,11 +19,32 @@ fi
 
 echo "[Thông tin] Phiên bản mới nhất: $LATEST_VERSION"
 
-DOWNLOAD_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATEST_VERSION}/zeroclaw-aarch64-linux-android.tar.gz"
+# Nhận dạng kiến trúc thiết bị
+ARCH=$(uname -m)
+case "$ARCH" in
+    aarch64)
+        BINARY_TARGET="aarch64-linux-android"
+        ;;
+    armv7l|armv8l|arm)
+        BINARY_TARGET="armv7-linux-android"
+        ;;
+    *)
+        echo -e "\033[31m[LỖI] Kiến trúc CPU ($ARCH) chưa được hỗ trợ chính thức binary.\033[0m"
+        echo "Vui lòng liên hệ hỗ trợ hoặc thử build từ mã nguồn."
+        exit 1
+        ;;
+esac
+
+DOWNLOAD_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATEST_VERSION}/zeroclaw-${BINARY_TARGET}.tar.gz"
 TAR_FILE="$TMP_DIR/zeroclaw-android.tar.gz"
 
-echo "Đang tải mã nguồn nén từ: $DOWNLOAD_URL ..."
-curl -L "$DOWNLOAD_URL" -o "$TAR_FILE"
+echo "[Thông tin] Đang tải mã nguồn Binary cho kiến trúc $ARCH..."
+echo "URL: $DOWNLOAD_URL"
+curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" || {
+    echo -e "\033[31m[LỖI] Không tìm thấy Binary cho kiến trúc $ARCH trên server.\033[0m"
+    echo "Thử kiểm tra lại phiên bản hoặc liên hệ quản trị viên."
+    exit 1
+}
 
 echo "[Thông tin] Giải nén và cấu hình..."
 cd "$TMP_DIR"

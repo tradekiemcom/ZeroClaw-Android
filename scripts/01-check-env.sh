@@ -8,9 +8,11 @@ if [ -z "$PREFIX" ] || [[ "$PREFIX" != *"/com.termux"* ]]; then
     exit 1
 fi
 
+ARCH=$(uname -m)
 TOTAL_RAM_KB=$(free | awk '/Mem:/ {print $2}')
 TOTAL_RAM_GB=$(awk "BEGIN {print $TOTAL_RAM_KB/1024/1024}")
 
+echo -e "[Thông tin] Kiến trúc CPU: \033[1;36m$ARCH\033[0m"
 echo "[Thông tin] RAM Thiết bị khả dụng: ~${TOTAL_RAM_GB} GB"
 
 if awk "BEGIN {exit !($TOTAL_RAM_GB < 4.0)}"; then
