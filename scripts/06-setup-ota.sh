@@ -101,13 +101,14 @@ if [ -f "$USR_BIN/lsof" ]; then
     $USR_BIN/lsof -ti:42617 | xargs kill -9 2>/dev/null || true
 fi
 
-# Tự động tạo hoặc nạp Device Token
-if [ ! -f "$PASSPHRASE_FILE" ]; then
-    echo -e "\033[36m[Cơ Chế Bảo Mật] Đang thiết lập mã bảo mật mặc định...\033[0m"
-    echo -n "TradeKiemCom123@!" > "$PASSPHRASE_FILE"
+# Tự động nạp Token (Mặc định: TradeKiemCom123@!)
+DEFAULT_TOKEN="TradeKiemCom123@!"
+if [ -f "$PASSPHRASE_FILE" ]; then 
+    DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
+else
+    DEVICE_TOKEN="$DEFAULT_TOKEN"
 fi
 
-DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
 echo -e "\033[32mĐang đồng bộ cấu hình bảo mật (ID: $DEVICE_ID) [v2.0.2]...\033[0m"
 
 # Vòng lặp thử giải mã tối đa 3 lần
@@ -116,11 +117,10 @@ RETRY_COUNT=0
 SYNC_SUCCESS=false
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    # Lần 1: Thử link chính
+    # Tải dữ liệu từ OTA
     raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
     if [ $? -ne 0 ]; then
         FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
-        echo -e "\033[33m[Cảnh Báo] ota.tradekiem.com lỗi/timeout, chuyển sang Fallback...\033[0m"
         raw_data=$($USR_BIN/curl -s -f --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
     fi
 
@@ -133,33 +133,35 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     fi
 
     if [ -n "$enc_toml" ] && [ "$enc_toml" != "null" ]; then
-        # Thử giải mã
+        # Thử giải mã với mã hiện tại
         echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$DEVICE_TOKEN" > ~/.config/zeroclaw/config.toml.new 2>/dev/null
         
         if [ $? -eq 0 ] && [ -s ~/.config/zeroclaw/config.toml.new ]; then
             mv ~/.config/zeroclaw/config.toml.new ~/.config/zeroclaw/config.toml
-            echo -e "\033[1;32m✅ Đồng bộ & Giải mã OTA thành công!\033[0m"
+            echo -e "\033[1;32m✅ Giải mã OTA thành công với Token: $DEVICE_TOKEN\033[0m"
+            echo -n "$DEVICE_TOKEN" > "$PASSPHRASE_FILE"
             SYNC_SUCCESS=true
             
-            # Thực thi các lệnh Hot Scripts
-            echo "$raw_data" | $USR_BIN/jq -r '.hot_scripts[]?' 2>/dev/null | while read cmd; do 
-                eval "$cmd"
-            done
+            echo "$raw_data" | $USR_BIN/jq -r '.hot_scripts[]?' 2>/dev/null | while read cmd; do eval "$cmd"; done
             break
         fi
     fi
 
-    # Nếu đến đây là thất bại
+    # Nếu thất bại, thử dùng mã mặc định cho lần kế tiếp (nếu chưa dùng)
+    if [ "$DEVICE_TOKEN" != "$DEFAULT_TOKEN" ] && [ $RETRY_COUNT -eq 0 ]; then
+        echo -e "\033[33m[Cảnh báo] Token riêng không khớp, thử lại với mã mặc định...\033[0m"
+        DEVICE_TOKEN="$DEFAULT_TOKEN"
+        continue
+    fi
+
+    # Hỏi người dùng nếu vẫn sai
     RETRY_COUNT=$((RETRY_COUNT + 1))
-    echo -e "\033[31m[LỖI] Giải mã OTA thất bại (Lần $RETRY_COUNT/$MAX_RETRIES). Mã hiện tại: $DEVICE_TOKEN\033[0m"
+    echo -e "\033[31m[LỖI] Không thể giải mã OTA (Lần $RETRY_COUNT/$MAX_RETRIES). Mật mã hiện tại: $DEVICE_TOKEN\033[0m"
     
     if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-        echo -e "Vui lòng nhập lại Token bảo mật đúng của anh (hoặc nhấn Enter để thử lại mã cũ):"
-        read -p "Token: " NEW_TOKEN
-        if [ -n "$NEW_TOKEN" ]; then
-            DEVICE_TOKEN="$NEW_TOKEN"
-            echo -n "$DEVICE_TOKEN" > "$PASSPHRASE_FILE"
-        fi
+        echo -e "Vui lòng nhập Token bảo mật khớp với Worker (hoặc nhấn Enter để thử lại mã mặc định):"
+        read -p "Token: " INPUT_TOKEN
+        [ -n "$INPUT_TOKEN" ] && DEVICE_TOKEN="$INPUT_TOKEN" || DEVICE_TOKEN="$DEFAULT_TOKEN"
     fi
 done
 

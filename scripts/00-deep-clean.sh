@@ -16,10 +16,12 @@ pkg clean -y > /dev/null 2>&1 || true
 echo "  - Loại bỏ các thành phần biên dịch cũ (~/.cargo, ~/.rustup)..."
 rm -rf ~/.cargo ~/.rustup > /dev/null 2>&1 || true
 
-# 3. Xóa thư mục làm việc tạm thời
-echo "  - Xóa thư mục tạm thời và log cũ..."
+# 3. Xóa thư mục làm việc tạm thời và giải phóng proot
+echo "  - Xóa thư mục tạm thời, log cũ và bộ giả lập proot..."
 rm -rf /data/data/com.termux/files/usr/tmp/zeroclaw-* > /dev/null 2>&1 || true
 rm -rf ~/.zeroclaw/log/* > /dev/null 2>&1 || true
+pkg uninstall proot -y > /dev/null 2>&1 || true
+rm -f "$PREFIX/bin/zeroclaw.bin" > /dev/null 2>&1 || true
 
 # 4. Gỡ bỏ các gói phụ trợ build nếu người dùng đã cài lỗi trước đó
 echo "  - Gỡ bỏ các công cụ biên dịch nặng (rust, clang) để lấy lại dung lượng..."

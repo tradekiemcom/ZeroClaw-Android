@@ -47,35 +47,40 @@ echo "[Thông tin] Đang kiểm tra Binary cho kiến trúc $ARCH..."
 if curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" 2>/dev/null; then
     COMPILATION_REQUIRED=false
 else
-    # Nếu không có bản Android 32-bit, dùng bản Generic ARM + Proot
-    if [[ "$ARCH" == "arm"* ]]; then
-        echo -e "\033[33m[Thông báo] Không tìm thấy Binary Android 32-bit. Sử dụng giải pháp [Generic ARM + Proot]...\033[0m"
-        GENERIC_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATEST_VERSION}/zeroclaw-arm-unknown-linux-gnueabihf.tar.gz"
-        pkg install proot -y
-        curl -L -f "$GENERIC_URL" -o "$TAR_FILE"
-        COMPILATION_REQUIRED=false
-        USE_PROOT=true
-    else
-        echo -e "\033[31m[LỖI] Không tìm thấy Binary cho kiến trúc $ARCH.\033[0m"
-        exit 1
-    fi
+    echo -e "\033[33m[Thông báo] Không tìm thấy Binary Android build sẵn. Bắt đầu [Biên dịch Native]...\033[0m"
+    COMPILATION_REQUIRED=true
 fi
 
-echo "[Thông tin] Giải nén và cấu hình..."
-cd "$TMP_DIR"
-tar -xzf "$TAR_FILE"
-
-# Gắn nhị phân vào Termux
-if [ "$USE_PROOT" = "true" ]; then
-    mv zeroclaw "$BIN_DIR/zeroclaw.bin"
-    # Tạo script wrapper để chạy qua proot (giả lập glibc)
-    cat << EOF > "$BIN_DIR/zeroclaw"
-#!/bin/bash
-export PATH="\$PREFIX/bin:\$PATH"
-proot -0 -b /dev -b /proc -b /sys "$BIN_DIR/zeroclaw.bin" "\$@"
-EOF
-    chmod +x "$BIN_DIR/zeroclaw" "$BIN_DIR/zeroclaw.bin"
+if [ "$COMPILATION_REQUIRED" = "true" ]; then
+    echo "[Thông tin] Thiết lập môi trường biên dịch (Fix Linker)..."
+    pkg install rust clang make binutils -y
+    
+    # SỬA LỖI LINKER QUAN TRỌNG CHO ARMv7 TRÊN TERMUX
+    export CC=clang
+    export CXX=clang++
+    export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=clang
+    
+    echo "[Thông tin] Tải mã nguồn ZeroClaw mới nhất..."
+    cd "$TMP_DIR"
+    rm -rf zeroclaw-src
+    git clone https://github.com/zeroclaw-labs/zeroclaw zeroclaw-src --depth 1
+    cd zeroclaw-src
+    
+    echo "[1/2] Đang biên dịch ZeroClaw (Dành riêng cho chip của anh)..."
+    # Sử dụng profile release-small để giảm kích thước và j1 để tiết kiệm RAM
+    cargo build --profile release-small -j 1
+    
+    if [ -f "target/release-small/zeroclaw" ]; then
+        cp target/release-small/zeroclaw "$BIN_DIR/zeroclaw"
+        echo -e "\033[32m✅ Biên dịch Native thành công rực rỡ!\033[0m"
+    else
+        echo -e "\033[31m[LỖI] Biên dịch thất bại. Hãy đảm bảo máy có ít nhất 1.5GB trống.\033[0m"
+        exit 1
+    fi
 else
+    echo "[Thông tin] Giải nén và cấu hình..."
+    cd "$TMP_DIR"
+    tar -xzf "$TAR_FILE"
     mv zeroclaw "$BIN_DIR/zeroclaw"
     chmod +x "$BIN_DIR/zeroclaw"
 fi
