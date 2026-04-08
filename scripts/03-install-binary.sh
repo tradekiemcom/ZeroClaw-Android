@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Đảm bảo PATH của Termux luôn được nạp
+export PATH="$PREFIX/bin:$PATH"
+
 BIN_DIR="$PREFIX/bin"
 TMP_DIR="$PREFIX/tmp"
 

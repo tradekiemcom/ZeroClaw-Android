@@ -2,6 +2,9 @@
 # BƯỚC 6: Tích Hợp OTA Sync & Quản Trị Hệ Thống Từ Xa
 # ==============================================================================
 
+# Đảm bảo PATH của Termux luôn được nạp
+export PATH="$PREFIX/bin:$PATH"
+
 echo -e "\033[36m[6/6] Cài đặt Module Quản Trị OTA & Remote ADB...\033[0m"
 
 # Nếu chạy ngoài Termux (test trên Mac), bỏ qua cài pkg

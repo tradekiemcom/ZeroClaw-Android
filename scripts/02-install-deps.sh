@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Đảm bảo PATH của Termux luôn được nạp
+export PATH="$PREFIX/bin:$PATH"
+
 echo "[Thông tin] Đồng bộ và sửa lỗi Repository Termux (Fixing mirrors)..."
 # Tự động chuyển mirror nếu bị lỗi (Dùng cho các dòng TVBox mạng yếu hoặc bị chặn)
 if command -v termux-change-repo >/dev/null 2>&1; then
@@ -25,16 +28,12 @@ done
 # Kiểm tra sự tồn tại của lệnh quan trọng và báo cáo đường dẫn
 echo "[Thông tin] Kiểm tra môi trường thực thi:"
 for cmd in openssl jq curl; do
-    CMD_PATH=$(command -v $cmd 2>/dev/null || echo "MISSING")
+    # Thử tìm lệnh qua command -v trước, nếu không thấy thì thử tìm trực tiếp trong $PREFIX/bin
+    CMD_PATH=$(command -v $cmd 2>/dev/null || ([ -f "$PREFIX/bin/$cmd" ] && echo "$PREFIX/bin/$cmd") || echo "MISSING")
+    
     if [ "$CMD_PATH" = "MISSING" ]; then
         echo -e "\033[31m[LỖI] Không thấy lệnh $cmd. Cài đặt có thể thất bại.\033[0m"
-        # Thử link tay nếu là openssl
-        if [ "$cmd" = "openssl" ] && [ -f "$PREFIX/bin/openssl" ]; then
-            echo "Phát hiện openssl tại $PREFIX/bin/openssl nhưng không có trong PATH. Đang fix..."
-            export PATH="$PREFIX/bin:$PATH"
-        else
-            exit 1
-        fi
+        exit 1
     else
         echo "  - $cmd: $CMD_PATH"
     fi

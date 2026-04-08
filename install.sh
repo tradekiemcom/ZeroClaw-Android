@@ -7,6 +7,9 @@
 set -e
 trap 'echo -e "\n\033[31m[ERROR] Quá trình cài đặt thất bại tại luồng chính.\033[0m"; exit 1' ERR
 
+# Đảm bảo PATH của Termux luôn được nạp
+export PATH="$PREFIX/bin:$PATH"
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="$PROJECT_ROOT/scripts"
 

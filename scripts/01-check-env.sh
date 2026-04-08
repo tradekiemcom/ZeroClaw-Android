@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Đảm bảo PATH của Termux luôn được nạp
+export PATH="$PREFIX/bin:$PATH"
+
 # Đảm bảo môi trường chạy là Termux, chặn Linux thuần hoặc quyền Root (Sudo)
 if [ -z "$PREFIX" ] || [[ "$PREFIX" != *"/com.termux"* ]]; then
     echo -e "\033[31m[LỖI] Kịch bản này chỉ dành cho môi trường Android/Termux.\033[0m"
