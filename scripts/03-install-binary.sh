@@ -43,45 +43,65 @@ TAR_FILE="$TMP_DIR/zeroclaw-android.tar.gz"
 
 echo "[Thông tin] Đang tải mã nguồn Binary cho kiến trúc $ARCH..."
 echo "  - URL: $DOWNLOAD_URL"
-curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" || {
-    echo -e "\033[31m[LỖI] Không tìm thấy Binary cho kiến trúc $ARCH trên server.\033[0m"
-    echo "Thử kiểm tra lại phiên bản hoặc liên hệ quản trị viên."
-    exit 1
-}
-
-# Kiểm tra dung lượng file tải về
-FILE_SIZE=$(ls -lh "$TAR_FILE" | awk '{print $5}')
-echo "[Thông tin] Đã tải xong: $FILE_SIZE"
-
-if [ ! -s "$TAR_FILE" ]; then
-    echo -e "\033[31m[LỖI] File tải về bị trống (0 bytes). Vui lòng thử lại.\033[0m"
-    exit 1
+# Thử tải bản Android
+if curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" 2>/dev/null; then
+    COMPILATION_REQUIRED=false
+else
+    echo -e "\033[33m[Thông báo] Không tìm thấy Binary build sẵn cho kiến trúc $ARCH.\033[0m"
+    echo -e "Hệ thống sẽ chuyển sang chế độ: \033[1;36mBIÊN DỊCH TRỰC TIẾP TỪ MÃ NGUỒN\033[0m"
+    COMPILATION_REQUIRED=true
 fi
 
-echo "[Thông tin] Giải nén và cấu hình..."
-cd "$TMP_DIR"
-tar -xzf "$TAR_FILE"
+if [ "$COMPILATION_REQUIRED" = "true" ]; then
+    echo "[Thông tin] Bắt đầu cài đặt bộ công cụ biên dịch (Rust, Cargo, Clang)..."
+    pkg install rust clang make binutils -y || {
+        echo -e "\033[31m[LỖI] Không thể cài đặt bộ công cụ biên dịch. Vui lòng kiểm tra lại mạng.\033[0m"
+        exit 1
+    }
+    
+    echo "[Thông tin] Tải mã nguồn ZeroClaw mới nhất..."
+    cd "$TMP_DIR"
+    rm -rf zeroclaw-src
+    git clone https://github.com/zeroclaw-labs/zeroclaw zeroclaw-src --depth 1
+    cd zeroclaw-src
+    
+    echo "[1/2] Đang biên dịch thuật toán ZeroClaw (Có thể mất 5-15 phút)..."
+    # Dùng -j 1 để tránh lỗi OOM (Hết RAM) trên TV Box
+    cargo build --release -j 1
+    
+    if [ -f "target/release/zeroclaw" ]; then
+        cp target/release/zeroclaw "$BIN_DIR/zeroclaw"
+        echo -e "\033[32m✅ Biên dịch thành công!\033[0m"
+    else
+        echo -e "\033[31m[LỖI] Biên dịch thất bại. Máy có thể đã hết RAM hoặc bộ nhớ.\033[0m"
+        exit 1
+    fi
+else
+    # Kiểm tra dung lượng file tải về
+    FILE_SIZE=$(ls -lh "$TAR_FILE" | awk '{print $5}')
+    echo "[Thông tin] Đã tải xong: $FILE_SIZE"
 
-# Kiểm tra file binary sau khi giải nén
-if [ ! -f "zeroclaw" ]; then
-    echo -e "\033[31m[LỖI] Không thấy file 'zeroclaw' sau khi giải nén.\033[0m"
-    ls -la
-    exit 1
+    if [ ! -s "$TAR_FILE" ]; then
+        echo -e "\033[31m[LỖI] File tải về bị trống (0 bytes). Vui lòng thử lại.\033[0m"
+        exit 1
+    fi
+
+    echo "[Thông tin] Giải nén và cấu hình..."
+    cd "$TMP_DIR"
+    tar -xzf "$TAR_FILE"
+
+    # Kiểm tra file binary sau khi giải nén
+    if [ ! -f "zeroclaw" ]; then
+        echo -e "\033[31m[LỖI] Không thấy file 'zeroclaw' sau khi giải nén.\033[0m"
+        ls -la
+        exit 1
+    fi
+
+    # Gắn nhị phân vào Termux
+    mv zeroclaw "$BIN_DIR/zeroclaw"
 fi
 
-# Chạy thử lệnh help để kiểm tra tương thích (Nếu có thể)
-echo "[Thông tin] Kiểm tra tính tương thích của Binary..."
-chmod +x zeroclaw
-./zeroclaw --version > /dev/null 2>&1 || {
-    echo -e "\033[33m[Cảnh Báo] Binary có vẻ không tương thích trực tiếp với môi trường này (Lỗi: $?).\033[0m"
-    echo "Vẫn tiến hành cài đặt nhưng hệ thống có thể không chạy được."
-}
-
-# Gắn nhị phân vào Termux
-mv zeroclaw "$BIN_DIR/zeroclaw"
 chmod +x "$BIN_DIR/zeroclaw"
-
-# Dọn dẹp
-rm "$TAR_FILE"
+rm -f "$TAR_FILE"
 
 echo "[Thông tin] Cài đặt ZeroClaw thành công."

@@ -25,14 +25,21 @@ for pkg_name in curl jq wget tar openssl ca-certificates lsof; do
     pkg install -y $pkg_name || apt-get install -y $pkg_name || echo "Bỏ qua lỗi cài đặt $pkg_name (có thể đã tồn tại)."
 done
 
+TUX_USR="/data/data/com.termux/files/usr"
+TUX_BIN="$TUX_USR/bin"
+
 # Kiểm tra sự tồn tại của lệnh quan trọng và báo cáo đường dẫn
 echo "[Thông tin] Kiểm tra môi trường thực thi:"
 for cmd in openssl jq curl; do
-    # Thử tìm lệnh qua command -v trước, nếu không thấy thì thử tìm trực tiếp trong $PREFIX/bin
-    CMD_PATH=$(command -v $cmd 2>/dev/null || ([ -f "$PREFIX/bin/$cmd" ] && echo "$PREFIX/bin/$cmd") || echo "MISSING")
+    # Ưu tiên kiểm tra đường dẫn vật lý mà anh đã tìm thấy
+    if [ -f "$TUX_BIN/$cmd" ]; then
+        CMD_PATH="$TUX_BIN/$cmd"
+    else
+        CMD_PATH=$(command -v $cmd 2>/dev/null || echo "MISSING")
+    fi
     
     if [ "$CMD_PATH" = "MISSING" ]; then
-        echo -e "\033[31m[LỖI] Không thấy lệnh $cmd. Cài đặt có thể thất bại.\033[0m"
+        echo -e "\033[31m[LỖI] Không thấy lệnh $cmd tại $TUX_BIN. Cài đặt có thể thất bại.\033[0m"
         exit 1
     else
         echo "  - $cmd: $CMD_PATH"

@@ -104,16 +104,16 @@ fi
 # Tự động tạo Device Token
 if [ ! -f "$PASSPHRASE_FILE" ]; then
     echo -e "\033[36m[Zero-Touch] Đang khởi tạo mã bảo mật riêng cho thiết bị...\033[0m"
-    if [ -f "$USR_BIN/openssl" ]; then
-        $USR_BIN/openssl rand -hex 16 > "$PASSPHRASE_FILE"
+    # Ghim đường dẫn OpenSSL anh đã tìm thấy
+    OPENSSL_BIN="/data/data/com.termux/files/usr/bin/openssl"
+    if [ -f "$OPENSSL_BIN" ]; then
+        $OPENSSL_BIN rand -hex 16 > "$PASSPHRASE_FILE"
     else
-        echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl tại $USR_BIN/openssl.\033[0m"
-        # Dự phòng bằng cách thử gọi trực tiếp openssl nếu nó trong PATH
-        if command -v openssl >/dev/null 2>&1; then
-             openssl rand -hex 16 > "$PASSPHRASE_FILE"
-        else
-             exit 1
-        fi
+        # Dự phòng gọi qua PATH nếu file không nằm đúng chỗ cũ
+        openssl rand -hex 16 > "$PASSPHRASE_FILE" || {
+            echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl.\033[0m"
+            exit 1
+        }
     fi
 fi
 
