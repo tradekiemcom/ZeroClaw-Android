@@ -135,8 +135,9 @@ export default {
       const openRouterKey = env.OPENROUTER_KEY || "sk-or-v1-xxx";
       const nvidiaNimKey = env.NVIDIA_NIM_KEY || "nvapi-xxx";
 
-      // Sử dụng chính Device Token làm mật khẩu cấp phát riêng (Bảo mật Zero-Touch)
-      const encryptionPassphrase = deviceToken;
+      // Ưu tiên sử dụng Mã bảo mật từ biến môi trường (Shared Secret), 
+      // nếu không có mới dùng Device Token (Zero-Touch)
+      const encryptionPassphrase = env.ENCRYPTION_KEY || deviceToken;
 
       // Mẫu giao diện TOML 3 lõi do lệnh từ Sếp
       const tomlConfig = `

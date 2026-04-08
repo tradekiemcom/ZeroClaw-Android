@@ -39,6 +39,13 @@ if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
     exit 0
 fi
 
+# Nhập Token bảo mật OTA nếu có
+echo -e "\n\033[36m>>> Cấu hình Token Bảo Mật OTA <<<\033[0m"
+echo -e "Nếu anh đã cài ENCRYPTION_KEY trên Worker (ví dụ: TradeKiemCom123@!), hãy nhập vào đây."
+echo -e "Nếu bỏ trống, máy sẽ tự sinh mã ngẫu nhiên (Zero-Touch)."
+read -p "Nhập mã bảo mật (Để trống nếu không rõ): " OTA_TOKEN
+export OTA_TOKEN
+
 # ==============================================================================
 # BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC
 # ==============================================================================
