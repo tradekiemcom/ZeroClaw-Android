@@ -14,6 +14,19 @@ echo -e "\033[36m============================================================\03
 echo -e "\033[1;36m           ZeroClaw-Android: Native Installer               \033[0m"
 echo -e "\033[36m============================================================\033[0m"
 
+# Thu thập thông tin hệ thống để chẩn đoán
+CPU_ARCH=$(uname -m)
+ANDROID_VER=$(getprop ro.build.version.release 2>/dev/null || echo "Unknown")
+DEVICE_MODEL=$(getprop ro.product.model 2>/dev/null || echo "Unknown Device")
+KERNEL_VER=$(uname -r)
+
+echo -e "\033[1;33m>>> THÔNG TIN HỆ THỐNG <<<\033[0m"
+echo -e "  - Thiết bị:    \033[32m$DEVICE_MODEL\033[0m"
+echo -e "  - Android:    \033[32m$ANDROID_VER\033[0m"
+echo -e "  - Kiến trúc:  \033[32m$CPU_ARCH\033[0m"
+echo -e "  - Kernel:    \033[32m$KERNEL_VER\033[0m"
+echo -e "\033[36m------------------------------------------------------------\033[0m"
+
 chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
 
 echo -e "\n\033[32m[1/4] Kiểm tra Môi trường & Thiết bị...\033[0m"

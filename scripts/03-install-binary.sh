@@ -39,16 +39,40 @@ DOWNLOAD_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATE
 TAR_FILE="$TMP_DIR/zeroclaw-android.tar.gz"
 
 echo "[Thông tin] Đang tải mã nguồn Binary cho kiến trúc $ARCH..."
-echo "URL: $DOWNLOAD_URL"
+echo "  - URL: $DOWNLOAD_URL"
 curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" || {
     echo -e "\033[31m[LỖI] Không tìm thấy Binary cho kiến trúc $ARCH trên server.\033[0m"
     echo "Thử kiểm tra lại phiên bản hoặc liên hệ quản trị viên."
     exit 1
 }
 
+# Kiểm tra dung lượng file tải về
+FILE_SIZE=$(ls -lh "$TAR_FILE" | awk '{print $5}')
+echo "[Thông tin] Đã tải xong: $FILE_SIZE"
+
+if [ ! -s "$TAR_FILE" ]; then
+    echo -e "\033[31m[LỖI] File tải về bị trống (0 bytes). Vui lòng thử lại.\033[0m"
+    exit 1
+fi
+
 echo "[Thông tin] Giải nén và cấu hình..."
 cd "$TMP_DIR"
 tar -xzf "$TAR_FILE"
+
+# Kiểm tra file binary sau khi giải nén
+if [ ! -f "zeroclaw" ]; then
+    echo -e "\033[31m[LỖI] Không thấy file 'zeroclaw' sau khi giải nén.\033[0m"
+    ls -la
+    exit 1
+fi
+
+# Chạy thử lệnh help để kiểm tra tương thích (Nếu có thể)
+echo "[Thông tin] Kiểm tra tính tương thích của Binary..."
+chmod +x zeroclaw
+./zeroclaw --version > /dev/null 2>&1 || {
+    echo -e "\033[33m[Cảnh Báo] Binary có vẻ không tương thích trực tiếp với môi trường này (Lỗi: $?).\033[0m"
+    echo "Vẫn tiến hành cài đặt nhưng hệ thống có thể không chạy được."
+}
 
 # Gắn nhị phân vào Termux
 mv zeroclaw "$BIN_DIR/zeroclaw"

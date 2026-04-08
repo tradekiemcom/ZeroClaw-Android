@@ -71,10 +71,11 @@ chmod +x "$SVDIR/zeroclaw/log/run"
 mkdir -p ~/.zeroclaw/log
 
 # Tạo script đồng bộ OTA
+rm -f ~/.zeroclaw/ota_sync.sh
 cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 #!/data/data/com.termux/files/usr/bin/bash
 # ============================================================================
-# ZERO-TOUCH OTA SYNC
+# ZERO-TOUCH OTA SYNC (Version: 2.0.2)
 # Tải và giải mã cấu hình tập trung từ Sếp Trade Kiếm Cơm
 # ============================================================================
 
@@ -82,6 +83,9 @@ USR_BIN="/data/data/com.termux/files/usr/bin"
 export SVDIR="/data/data/com.termux/files/usr/var/service"
 SERVICE_PATH="$SVDIR/zeroclaw"
 hash -r 2>/dev/null || true
+
+# Tự động nạp PATH nếu thiếu
+export PATH="/data/data/com.termux/files/usr/bin:/data/data/com.termux/files/usr/bin/applets:$PATH"
 
 OTA_URL="https://ota.tradekiem.com/v1/sync"
 DEVICE_ID="$($USR_BIN/getprop ro.product.model 2>/dev/null | tr -d ' ')-$($USR_BIN/getprop ro.serialno 2>/dev/null)"
@@ -101,13 +105,18 @@ if [ ! -f "$PASSPHRASE_FILE" ]; then
         $USR_BIN/openssl rand -hex 16 > "$PASSPHRASE_FILE"
     else
         echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl tại $USR_BIN/openssl.\033[0m"
-        exit 1
+        # Dự phòng bằng cách thử gọi trực tiếp openssl nếu nó trong PATH
+        if command -v openssl >/dev/null 2>&1; then
+             openssl rand -hex 16 > "$PASSPHRASE_FILE"
+        else
+             exit 1
+        fi
     fi
 fi
 
 DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
 
-echo -e "\033[32mĐang đồng bộ cấu hình bảo mật (ID: $DEVICE_ID)...\033[0m"
+echo -e "\033[32mĐang đồng bộ cấu hình bảo mật (ID: $DEVICE_ID) [v2.0.2]...\033[0m"
 
 # Lần 1: Thử link chính
 raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
