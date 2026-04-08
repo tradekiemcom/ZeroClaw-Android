@@ -13,26 +13,39 @@ export PATH="$PREFIX/bin:$PATH"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="$PROJECT_ROOT/scripts"
 
-echo -e "\033[36m============================================================\033[0m"
-echo -e "\033[1;36m           ZeroClaw-Android: Native Installer               \033[0m"
-echo -e "\033[36m============================================================\033[0m"
-
-# Thu thập thông tin hệ thống để chẩn đoán
-CPU_ARCH=$(uname -m)
-ANDROID_VER=$(getprop ro.build.version.release 2>/dev/null || echo "Unknown")
-DEVICE_MODEL=$(getprop ro.product.model 2>/dev/null || echo "Unknown Device")
-KERNEL_VER=$(uname -r)
-
-echo -e "\033[1;33m>>> THÔNG TIN HỆ THỐNG <<<\033[0m"
-echo -e "  - Thiết bị:    \033[32m$DEVICE_MODEL\033[0m"
-echo -e "  - Android:    \033[32m$ANDROID_VER\033[0m"
-echo -e "  - Kiến trúc:  \033[32m$CPU_ARCH\033[0m"
-echo -e "  - Kernel:    \033[32m$KERNEL_VER\033[0m"
-echo -e "\033[36m------------------------------------------------------------\033[0m"
-
 chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
 
-echo -e "\n\033[32m[1/4] Kiểm tra Môi trường & Thiết bị...\033[0m"
+# ==============================================================================
+# QUY TRÌNH KIỂM TRA & DỌN DẸP HỆ THỐNG (Interactive Mode)
+# ==============================================================================
+
+while true; do
+    bash "$SCRIPTS_DIR/01-sys-diagnostics.sh"
+    
+    echo -e "\nBạn có muốn thực hiện [Dọn dẹp & Giải phóng dung lượng] không? (y/n)"
+    read -p "Lựa chọn của bạn (Mặc định n): " choice
+    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        bash "$SCRIPTS_DIR/00-deep-clean.sh"
+        echo -e "\n--- Đang đánh giá lại hệ thống sau dọn dẹp ---\n"
+        continue
+    fi
+    break
+done
+
+echo -e "\nBạn có muốn bắt đầu tiến trình cài đặt ZeroClaw ngay bây giờ không? (y/n)"
+read -p "Xác nhận cài định (y/n): " confirm
+if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+    echo -e "\033[33mHủy bỏ quá trình cài đặt theo yêu cầu.\033[0m"
+    exit 0
+fi
+
+# ==============================================================================
+# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC
+# ==============================================================================
+
+echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android...\033[0m\n"
+
+echo -e "\n\033[32m[1/4] Cấu hình môi trường bảo mật...\033[0m"
 bash "$SCRIPTS_DIR/01-check-env.sh"
 
 echo -e "\n\033[32m[2/4] Cài đặt Dependencies nền tảng...\033[0m"

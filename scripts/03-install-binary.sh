@@ -41,67 +41,45 @@ esac
 DOWNLOAD_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATEST_VERSION}/zeroclaw-${BINARY_TARGET}.tar.gz"
 TAR_FILE="$TMP_DIR/zeroclaw-android.tar.gz"
 
-echo "[Thông tin] Đang tải mã nguồn Binary cho kiến trúc $ARCH..."
-echo "  - URL: $DOWNLOAD_URL"
-# Thử tải bản Android
+echo "[Thông tin] Đang kiểm tra Binary cho kiến trúc $ARCH..."
+
+# Thử tải bản Android chính chủ trước
 if curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" 2>/dev/null; then
     COMPILATION_REQUIRED=false
 else
-    echo -e "\033[33m[Thông báo] Không tìm thấy Binary build sẵn cho kiến trúc $ARCH.\033[0m"
-    echo -e "Hệ thống sẽ chuyển sang chế độ: \033[1;36mBIÊN DỊCH TRỰC TIẾP TỪ MÃ NGUỒN\033[0m"
-    COMPILATION_REQUIRED=true
-fi
-
-if [ "$COMPILATION_REQUIRED" = "true" ]; then
-    echo "[Thông tin] Bắt đầu cài đặt bộ công cụ biên dịch (Rust, Cargo, Clang)..."
-    pkg install rust clang make binutils -y || {
-        echo -e "\033[31m[LỖI] Không thể cài đặt bộ công cụ biên dịch. Vui lòng kiểm tra lại mạng.\033[0m"
-        exit 1
-    }
-    
-    echo "[Thông tin] Tải mã nguồn ZeroClaw mới nhất..."
-    cd "$TMP_DIR"
-    rm -rf zeroclaw-src
-    git clone https://github.com/zeroclaw-labs/zeroclaw zeroclaw-src --depth 1
-    cd zeroclaw-src
-    
-    echo "[1/2] Đang biên dịch thuật toán ZeroClaw (Có thể mất 5-15 phút)..."
-    # Dùng -j 1 để tránh lỗi OOM (Hết RAM) trên TV Box
-    cargo build --release -j 1
-    
-    if [ -f "target/release/zeroclaw" ]; then
-        cp target/release/zeroclaw "$BIN_DIR/zeroclaw"
-        echo -e "\033[32m✅ Biên dịch thành công!\033[0m"
+    # Nếu không có bản Android 32-bit, dùng bản Generic ARM + Proot
+    if [[ "$ARCH" == "arm"* ]]; then
+        echo -e "\033[33m[Thông báo] Không tìm thấy Binary Android 32-bit. Sử dụng giải pháp [Generic ARM + Proot]...\033[0m"
+        GENERIC_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATEST_VERSION}/zeroclaw-arm-unknown-linux-gnueabihf.tar.gz"
+        pkg install proot -y
+        curl -L -f "$GENERIC_URL" -o "$TAR_FILE"
+        COMPILATION_REQUIRED=false
+        USE_PROOT=true
     else
-        echo -e "\033[31m[LỖI] Biên dịch thất bại. Máy có thể đã hết RAM hoặc bộ nhớ.\033[0m"
+        echo -e "\033[31m[LỖI] Không tìm thấy Binary cho kiến trúc $ARCH.\033[0m"
         exit 1
     fi
-else
-    # Kiểm tra dung lượng file tải về
-    FILE_SIZE=$(ls -lh "$TAR_FILE" | awk '{print $5}')
-    echo "[Thông tin] Đã tải xong: $FILE_SIZE"
-
-    if [ ! -s "$TAR_FILE" ]; then
-        echo -e "\033[31m[LỖI] File tải về bị trống (0 bytes). Vui lòng thử lại.\033[0m"
-        exit 1
-    fi
-
-    echo "[Thông tin] Giải nén và cấu hình..."
-    cd "$TMP_DIR"
-    tar -xzf "$TAR_FILE"
-
-    # Kiểm tra file binary sau khi giải nén
-    if [ ! -f "zeroclaw" ]; then
-        echo -e "\033[31m[LỖI] Không thấy file 'zeroclaw' sau khi giải nén.\033[0m"
-        ls -la
-        exit 1
-    fi
-
-    # Gắn nhị phân vào Termux
-    mv zeroclaw "$BIN_DIR/zeroclaw"
 fi
 
-chmod +x "$BIN_DIR/zeroclaw"
+echo "[Thông tin] Giải nén và cấu hình..."
+cd "$TMP_DIR"
+tar -xzf "$TAR_FILE"
+
+# Gắn nhị phân vào Termux
+if [ "$USE_PROOT" = "true" ]; then
+    mv zeroclaw "$BIN_DIR/zeroclaw.bin"
+    # Tạo script wrapper để chạy qua proot (giả lập glibc)
+    cat << EOF > "$BIN_DIR/zeroclaw"
+#!/bin/bash
+export PATH="\$PREFIX/bin:\$PATH"
+proot -0 -b /dev -b /proc -b /sys "$BIN_DIR/zeroclaw.bin" "\$@"
+EOF
+    chmod +x "$BIN_DIR/zeroclaw" "$BIN_DIR/zeroclaw.bin"
+else
+    mv zeroclaw "$BIN_DIR/zeroclaw"
+    chmod +x "$BIN_DIR/zeroclaw"
+fi
+
 rm -f "$TAR_FILE"
 
 echo "[Thông tin] Cài đặt ZeroClaw thành công."
