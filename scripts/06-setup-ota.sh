@@ -101,76 +101,77 @@ if [ -f "$USR_BIN/lsof" ]; then
     $USR_BIN/lsof -ti:42617 | xargs kill -9 2>/dev/null || true
 fi
 
-# Tự động tạo Device Token
+# Tự động tạo hoặc nạp Device Token
 if [ ! -f "$PASSPHRASE_FILE" ]; then
-    echo -e "\033[36m[Cơ Chế Bảo Mật] Thiết lập mã giải mã cấu hình...\033[0m"
-    if [ -n "$OTA_TOKEN" ]; then
-        echo -e "Sử dụng Token tùy chỉnh: \033[32m$OTA_TOKEN\033[0m"
-        echo "$OTA_TOKEN" > "$PASSPHRASE_FILE"
-    else
-        echo -e "Đang khởi tạo mã bảo mật ngẫu nhiên (Zero-Touch)..."
-        OPENSSL_BIN="/data/data/com.termux/files/usr/bin/openssl"
-        if [ -f "$OPENSSL_BIN" ]; then
-            $OPENSSL_BIN rand -hex 16 > "$PASSPHRASE_FILE"
-        else
-            openssl rand -hex 16 > "$PASSPHRASE_FILE" || {
-                echo -e "\033[31m[!] Lỗi: Không thấy lệnh openssl.\033[0m"
-                exit 1
-            }
-        fi
-    fi
+    echo -e "\033[36m[Cơ Chế Bảo Mật] Đang thiết lập mã bảo mật mặc định...\033[0m"
+    echo -n "TradeKiemCom123@!" > "$PASSPHRASE_FILE"
 fi
 
 DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
-
 echo -e "\033[32mĐang đồng bộ cấu hình bảo mật (ID: $DEVICE_ID) [v2.0.2]...\033[0m"
 
-# Lần 1: Thử link chính
-raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
-if [ $? -ne 0 ]; then
-    FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
-    echo -e "\033[33m[Cảnh Báo] ota.tradekiem.com lỗi/timeout, chuyển sang Fallback...\033[0m"
-    raw_data=$($USR_BIN/curl -s -f --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
-fi
+# Vòng lặp thử giải mã tối đa 3 lần
+MAX_RETRIES=3
+RETRY_COUNT=0
+SYNC_SUCCESS=false
 
-enc_toml=$(echo "$raw_data" | $USR_BIN/jq -r '.encrypted_toml' 2>/dev/null)
-status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
-pass="$DEVICE_TOKEN"
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    # Lần 1: Thử link chính
+    raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
+    if [ $? -ne 0 ]; then
+        FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
+        echo -e "\033[33m[Cảnh Báo] ota.tradekiem.com lỗi/timeout, chuyển sang Fallback...\033[0m"
+        raw_data=$($USR_BIN/curl -s -f --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
+    fi
 
-if [ "$status" = "pending_approval" ]; then
-    echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) chờ được duyệt trên Cloudflare KV!\033[0m"
-    echo -e "Vui lòng đổi trạng thái thiết bị thành 'approved' trong KV 'KV_DEVICES'."
-    sleep 30
-    $USR_BIN/sv restart "$SERVICE_PATH" || true
-    exit 0
-fi
+    enc_toml=$(echo "$raw_data" | $USR_BIN/jq -r '.encrypted_toml' 2>/dev/null)
+    status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
 
-if [ "$enc_toml" = "null" ] || [ -z "$enc_toml" ]; then
-    echo -e "\033[31m[LỖI] Phân giải OTA thất bại.\033[0m"
-    echo -e "--- NỘI DUNG SERVER PHẢN HỒI ---"
-    echo -e "$raw_data"
-    echo -e "--------------------------------"
-    $USR_BIN/sv restart "$SERVICE_PATH" || true
-    exit 1
-fi
+    if [ "$status" = "pending_approval" ]; then
+        echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) chờ được duyệt trên Cloudflare KV!\033[0m"
+        break
+    fi
 
-echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$pass" > ~/.config/zeroclaw/config.toml.temp 2>/dev/null
+    if [ -n "$enc_toml" ] && [ "$enc_toml" != "null" ]; then
+        # Thử giải mã
+        echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$DEVICE_TOKEN" > ~/.config/zeroclaw/config.toml.new 2>/dev/null
+        
+        if [ $? -eq 0 ] && [ -s ~/.config/zeroclaw/config.toml.new ]; then
+            mv ~/.config/zeroclaw/config.toml.new ~/.config/zeroclaw/config.toml
+            echo -e "\033[1;32m✅ Đồng bộ & Giải mã OTA thành công!\033[0m"
+            SYNC_SUCCESS=true
+            
+            # Thực thi các lệnh Hot Scripts
+            echo "$raw_data" | $USR_BIN/jq -r '.hot_scripts[]?' 2>/dev/null | while read cmd; do 
+                eval "$cmd"
+            done
+            break
+        fi
+    fi
 
-if [ $? -eq 0 ]; then
-    mv ~/.config/zeroclaw/config.toml.temp ~/.config/zeroclaw/config.toml
-    echo -e "\033[1;32m✅ Giải mã Config thành công!\033[0m"
-    echo "$raw_data" | jq -r '.hot_scripts[]?' | while read cmd; do 
-        eval "$cmd"
-    done
+    # Nếu đến đây là thất bại
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    echo -e "\033[31m[LỖI] Giải mã OTA thất bại (Lần $RETRY_COUNT/$MAX_RETRIES). Mã hiện tại: $DEVICE_TOKEN\033[0m"
     
+    if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+        echo -e "Vui lòng nhập lại Token bảo mật đúng của anh (hoặc nhấn Enter để thử lại mã cũ):"
+        read -p "Token: " NEW_TOKEN
+        if [ -n "$NEW_TOKEN" ]; then
+            DEVICE_TOKEN="$NEW_TOKEN"
+            echo -n "$DEVICE_TOKEN" > "$PASSPHRASE_FILE"
+        fi
+    fi
+done
+
+if [ "$SYNC_SUCCESS" = "false" ]; then
+    echo -e "\033[33m[THÔNG BÁO] Không thể đồng bộ OTA sau $MAX_RETRIES lần thử. Bỏ qua bước này và cài đặt tiếp.\033[0m"
+    # Khởi động lại service bằng cấu hình cũ hoặc mặc định
+    sv restart "$SERVICE_PATH" || true
+else
     if command -v termux-wake-lock >/dev/null 2>&1; then termux-wake-lock; fi
     if command -v adb >/dev/null 2>&1; then adb connect localhost:5555 || true; fi
-    
     sv restart "$SERVICE_PATH" || true
     echo -e "\033[1;32m>>> HỆ THỐNG ĐÃ SẴN SÀNG <<<\033[0m"
-else
-    echo -e "\033[31m[LỖI] Giải mã OTA lỗi. Có thể do Token sai.\033[0m"
-    sv restart "$SERVICE_PATH" || true
 fi
 EOF
 
