@@ -57,17 +57,17 @@ if command -v lsof >/dev/null 2>&1; then
     lsof -ti:42617 | xargs kill -9 2>/dev/null || true
 fi
 
-# Đường dẫn bash chuẩn trong Termux
-TERMUX_BASH="/data/data/com.termux/files/usr/bin/bash"
+# Đường dẫn bash chuẩn trong Termux (Dùng env để tương thích mọi thiết bị)
+TERMUX_BASH=$(command -v bash || echo "/data/data/com.termux/files/usr/bin/bash")
 
 cat << EOF > "$SVDIR/zeroclaw/run"
-#!$TERMUX_BASH
+#!/usr/bin/env bash
 exec zeroclaw gateway 2>&1
 EOF
 chmod +x "$SVDIR/zeroclaw/run"
 
 cat << EOF > "$SVDIR/zeroclaw/log/run"
-#!$TERMUX_BASH
+#!/usr/bin/env bash
 svlogd -tt ~/.zeroclaw/log
 EOF
 chmod +x "$SVDIR/zeroclaw/log/run"
@@ -76,48 +76,45 @@ mkdir -p ~/.zeroclaw/log
 # Tạo script đồng bộ OTA
 rm -f ~/.zeroclaw/ota_sync.sh
 cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 # ============================================================================
-# ZERO-TOUCH OTA SYNC (Version: 2.0.2)
-# Tải và giải mã cấu hình tập trung từ Sếp Trade Kiếm Cơm
+# ZERO-TOUCH OTA SYNC (Version: 2.1.0 - Universal)
 # ============================================================================
 
-USR_BIN="/data/data/com.termux/files/usr/bin"
-export SVDIR="/data/data/com.termux/files/usr/var/service"
+# Tự động nhận diện đường dẫn hệ thống
+if [ -z "$PREFIX" ]; then
+    PREFIX="/data/data/com.termux/files/usr"
+fi
+USR_BIN="$PREFIX/bin"
+export SVDIR="$PREFIX/var/service"
 SERVICE_PATH="$SVDIR/zeroclaw"
-hash -r 2>/dev/null || true
-
-# Tự động nạp PATH nếu thiếu
-export PATH="/data/data/com.termux/files/usr/bin:/data/data/com.termux/files/usr/bin/applets:$PATH"
+export PATH="$USR_BIN:$PATH"
 
 OTA_URL="https://ota.tradekiem.com/v1/sync"
 DEVICE_ID="$($USR_BIN/getprop ro.product.model 2>/dev/null | tr -d ' ')-$($USR_BIN/getprop ro.serialno 2>/dev/null)"
-if [ "$DEVICE_ID" = "-" ]; then DEVICE_ID="note10_boss"; fi
+[ "$DEVICE_ID" = "-" ] && DEVICE_ID="note10_boss"
 
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
-
-# Giải phóng Port 42617 trước khi restart service
-if [ -f "$USR_BIN/lsof" ]; then
-    $USR_BIN/lsof -ti:42617 | xargs kill -9 2>/dev/null || true
-fi
-
-# Tự động nạp Token (Mặc định: TradeKiemCom123@!)
 DEFAULT_TOKEN="TradeKiemCom123@!"
+
+# Giải phóng Port
+$USR_BIN/lsof -ti:42617 | xargs kill -9 2>/dev/null || true
+
+# Nạp Token
 if [ -f "$PASSPHRASE_FILE" ]; then 
     DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
 else
     DEVICE_TOKEN="$DEFAULT_TOKEN"
 fi
 
-echo -e "\033[32mĐang đồng bộ cấu hình bảo mật (ID: $DEVICE_ID) [v2.0.2]...\033[0m"
+echo -e "\033[32mĐang đồng bộ cấu hình bảo mật cho: $DEVICE_ID...\033[0m"
 
-# Vòng lặp thử giải mã tối đa 3 lần
 MAX_RETRIES=3
 RETRY_COUNT=0
 SYNC_SUCCESS=false
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    # Tải dữ liệu từ OTA
+    # Tải dữ liệu
     raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
     if [ $? -ne 0 ]; then
         FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
@@ -128,65 +125,53 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
 
     if [ "$status" = "pending_approval" ]; then
-        echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) chờ được duyệt trên Cloudflare KV!\033[0m"
+        echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) đang chờ duyệt.\033[0m"
         break
     fi
 
     if [ -n "$enc_toml" ] && [ "$enc_toml" != "null" ]; then
-        # Thử giải mã với mã hiện tại
+        # Thử giải mã
         echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$DEVICE_TOKEN" > ~/.config/zeroclaw/config.toml.new 2>/dev/null
         
         if [ $? -eq 0 ] && [ -s ~/.config/zeroclaw/config.toml.new ]; then
             mv ~/.config/zeroclaw/config.toml.new ~/.config/zeroclaw/config.toml
-            echo -e "\033[1;32m✅ Giải mã OTA thành công với Token: $DEVICE_TOKEN\033[0m"
+            echo -e "\033[1;32m✅ Giải mã OTA thành công!\033[0m"
             echo -n "$DEVICE_TOKEN" > "$PASSPHRASE_FILE"
             SYNC_SUCCESS=true
-            
             echo "$raw_data" | $USR_BIN/jq -r '.hot_scripts[]?' 2>/dev/null | while read cmd; do eval "$cmd"; done
             break
         fi
     fi
 
-    # Nếu thất bại, thử dùng mã mặc định cho lần kế tiếp (nếu chưa dùng)
+    # Nếu sai và chưa dùng mặc định, thử mặc định
     if [ "$DEVICE_TOKEN" != "$DEFAULT_TOKEN" ] && [ $RETRY_COUNT -eq 0 ]; then
-        echo -e "\033[33m[Cảnh báo] Token riêng không khớp, thử lại với mã mặc định...\033[0m"
         DEVICE_TOKEN="$DEFAULT_TOKEN"
         continue
     fi
 
-    # Hỏi người dùng nếu vẫn sai
     RETRY_COUNT=$((RETRY_COUNT + 1))
-    echo -e "\033[31m[LỖI] Không thể giải mã OTA (Lần $RETRY_COUNT/$MAX_RETRIES). Mật mã hiện tại: $DEVICE_TOKEN\033[0m"
+    echo -e "\033[31m[LỖI] Giải mã OTA thất bại (Lần $RETRY_COUNT/$MAX_RETRIES).\033[0m"
     
     if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-        echo -e "Vui lòng nhập Token bảo mật khớp với Worker (hoặc nhấn Enter để thử lại mã mặc định):"
+        echo -e "Vui lòng nhập Token bảo mật (hoặc Enter để dùng mặc định):"
         read -p "Token: " INPUT_TOKEN
         [ -n "$INPUT_TOKEN" ] && DEVICE_TOKEN="$INPUT_TOKEN" || DEVICE_TOKEN="$DEFAULT_TOKEN"
     fi
 done
 
-if [ "$SYNC_SUCCESS" = "false" ]; then
-    echo -e "\033[33m[THÔNG BÁO] Không thể đồng bộ OTA sau $MAX_RETRIES lần thử. Bỏ qua bước này và cài đặt tiếp.\033[0m"
-    # Khởi động lại service bằng cấu hình cũ hoặc mặc định
-    sv restart "$SERVICE_PATH" || true
-else
-    if command -v termux-wake-lock >/dev/null 2>&1; then termux-wake-lock; fi
-    if command -v adb >/dev/null 2>&1; then adb connect localhost:5555 || true; fi
-    sv restart "$SERVICE_PATH" || true
-    echo -e "\033[1;32m>>> HỆ THỐNG ĐÃ SẴN SÀNG <<<\033[0m"
-fi
+[ "$SYNC_SUCCESS" = "false" ] && echo -e "\033[33m[!] Bỏ qua đồng bộ OTA.\033[0m"
+
+sv restart "$SERVICE_PATH" || true
 EOF
 
 chmod +x ~/.zeroclaw/ota_sync.sh
 
-# Bật service mặc định
-if command -v sv-enable >/dev/null 2>&1; then
-    sv-enable zeroclaw
-fi
+# Bật service
+sv-enable zeroclaw 2>/dev/null || true
 
 # Gắn vào Termux boot
 cat << 'EOF' > ~/.termux/boot/start_ota.sh
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 termux-wake-lock
 bash ~/.zeroclaw/ota_sync.sh >> ~/.zeroclaw/ota_boot.log 2>&1
 EOF
