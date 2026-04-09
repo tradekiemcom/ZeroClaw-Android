@@ -64,6 +64,7 @@ Nhiệm vụ:
 ## 🚀 Luồng Phối Hợp (Integrated Workflow)
 
 1. **Tech Scout (R&D)**: Tìm thấy công cụ quét tin tức mới -> Báo cáo CEO.
-2. **AI Dev (R&D)**: Viết script tích hợp công cụ đó vào Agent Trading Analyst.
-3. **Sales Closer (Sales)**: Dùng dữ liệu tin tức mới này để quảng cáo với khách hàng: "Chúng tôi vừa tích hợp công nghệ quét tin tức thời gian thực độ trễ 0.1s!"
-4. **Finance Officer (Finance)**: Ghi nhận doanh thu từ các khách hàng mới đăng ký.
+2. **Yêu cầu EA (R&D)**: CEO gửi yêu cầu phát triển EA Scalping mới từ phòng Trading. **AI Dev** thực hiện viết code thành một **ZeroClaw Skill**.
+3. **Nghiệm thu (R&D)**: Tech Scout chạy Backtest và báo cáo kết quả ROI/Drawdown cho CEO trước khi bàn giao phòng Trading.
+4. **Sales Closer (Sales)**: Dùng dữ liệu công nghệ mới này để quảng cáo với khách hàng.
+5. **Finance Officer (Finance)**: Ghi nhận doanh thu từ các khách hàng mới đăng ký.

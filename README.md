@@ -9,11 +9,11 @@ Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw
 - Thiết lập sẵn các công cụ giao tiếp liên mạng thông qua Cloudflare Tunnel cho Android.
 - Tự động hóa đánh giá năng lực phần cứng để khuyến cáo sử dụng phù hợp.
 
-## 🆕 Tính Năng Mới (v13.0 - Strategic Release)
-- **Strategic Orchestration**: CEO Agent điều phối chiến dịch đa tầng (Marketing + R&D + Trading + Sales).
+## 🆕 Tính Năng Mới (v14.0 - Portfolio Release)
+- **Portfolio Management**: Trade Leader quản lý danh mục tài khoản (Master, Investor, Fund).
+- **EA Lifecycle**: Quy trình khép kín từ yêu cầu nâng cấp EA -> R&D Coding -> Backtest -> Deploy.
+- **Strategic Orchestration**: CEO Agent điều phối chiến dịch đa tầng.
 - **Trading Connectors**: Tích hợp cTrader Open API & MT5 Web Gateway.
-- **Micro-Org Architecture**: Chạy 15+ Agent song song trên một thiết bị Note 10+.
-- **Admin Dashboard**: Quản lý thiết bị trực quan qua giao diện Web Cyberpunk.
 
 ## 🚀 Cài Đặt Nhanh (trên thiết bị Android > Termux)
 ```bash
@@ -23,10 +23,11 @@ cd ZeroClaw-Android
 chmod +x install.sh && ./install.sh
 ```
 
-## 🏢 Cẩm Nang Doanh Nghiệp AI (Autonomous Corp v13.0)
+## 🏢 Cẩm Nang Doanh Nghiệp AI (Autonomous Corp v14.0)
 Hệ thống tài liệu **"Cầm tay chỉ việc"** để thiết lập 15+ nhân sự AI trên một thiết bị:
 - 👑 **[MASTER MANUAL: CORE PA & CEO](docs/MASTER_MANUAL/01_CORE_STRUCTURE.md)**: Điều hành & Chiến dịch chiến lược.
 - 💹 **[MARKET ANALYST & TRADING](docs/MASTER_MANUAL/02_TRADING_DASHBOARD.md)**: Hệ thống soi kèo và thực thi lệnh.
+- ⚖️ **[PORTFOLIO & RISK MGMT](docs/MASTER_MANUAL/06_TRADING_PORTFOLIO_MGMT.md)**: Quản lý danh mục tài khoản & Vòng đời EA.
 - 🔌 **[TRADING API INTEGRATION](docs/MASTER_MANUAL/05_TRADING_API_INTEGRATION.md)**: Kết nối cTrader & MT5 Gateway.
 - 📣 **[CONTENT CREATOR & SOCIAL](docs/MASTER_MANUAL/03_MARKETING_ENGINE.md)**: Nhà máy sản xuất nội dung tự động.
 - 🏦 **[FINANCE, SALES & R&D](docs/MASTER_MANUAL/04_FINANCE_SALES_RD.md)**: Quản lý dòng tiền và săn công nghệ.
