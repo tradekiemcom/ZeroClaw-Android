@@ -60,5 +60,7 @@ bash "$SCRIPTS_DIR/99-verify-final.sh"
 
 echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - HÃY TRẢI NGHIỆM ZEROCLAW v7.3!\033[0m"
 
-# Tự động kích hoạt Sync lần đầu
-bash ~/.zeroclaw/ota_sync.sh
+# Tự động kích hoạt OTA Daemon v8.0 chạy ngầm
+echo -e "\n\033[36m[6/6] Kích hoạt tiến trình Tự động Đồng bộ (OTA Daemon)...\033[0m"
+nohup bash ~/.zeroclaw/ota_sync.sh > ~/.zeroclaw/ota_daemon.log 2>&1 &
+echo -e "Dịch vụ đồng bộ đang chạy ngầm. Hãy chờ Sếp duyệt trên Server để kích hoạt cấu hình."

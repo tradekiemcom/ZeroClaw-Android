@@ -71,140 +71,102 @@ async function encryptAES_OpenSSL(text, password) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const authHeader = request.headers.get('Authorization');
 
-    // API Endpoint: /v1/sync?id=xxx&token=yyy&core=zeroclaw
-    if (url.pathname === '/v1/sync') {
-      // 0. Kiểm tra hạ tầng Cloudflare Worker (KV Binding)
-      if (!env.KV_DEVICES) {
-        return new Response(JSON.stringify({ 
-          error: "Chưa cấu hình KV Binding!",
-          suggestion: "Vào Settings -> Bindings -> Add KV Namespace với Variable Name là 'KV_DEVICES'"
-        }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    // =========================================================================
+    // ADMIN API: Quản trị thiết bị tập trung (Dành cho Sếp)
+    // =========================================================================
+    if (url.pathname.startsWith('/admin')) {
+      const adminToken = env.ADMIN_TOKEN || "TradeKiemCom888"; // Mã bảo mật mặc định
+      if (authHeader !== `Bearer ${adminToken}`) {
+        return new Response("Unauthorized Admin Access", { status: 401 });
       }
+
+      // GET /admin/list: Liệt kê tất cả thiết bị
+      if (url.pathname === '/admin/list') {
+        const list = await env.KV_DEVICES.list();
+        const devices = {};
+        for (const key of list.keys) {
+          devices[key.name] = await env.KV_DEVICES.get(key.name, { type: "json" });
+        }
+        return new Response(JSON.stringify(devices, null, 2), { headers: { 'Content-Type': 'application/json' } });
+      }
+
+      // POST /admin/approve: Duyệt thiết bị (Dùng: ?id=xxx)
+      if (url.pathname === '/admin/approve' && request.method === 'POST') {
+        const id = url.searchParams.get('id');
+        if (!id) return new Response("Missing ID", { status: 400 });
+        const record = await env.KV_DEVICES.get(id, { type: "json" });
+        if (!record) return new Response("Device Not Found", { status: 404 });
+        
+        record.status = "approved";
+        record.approvedAt = Date.now();
+        await env.KV_DEVICES.put(id, JSON.stringify(record));
+        return new Response(`Device ${id} Approved!`, { status: 200 });
+      }
+    }
+
+    // =========================================================================
+    // CLIENT API: Đồng bộ & Tự động cập nhật (v8.0)
+    // =========================================================================
+    if (url.pathname === '/v1/sync') {
+      if (!env.KV_DEVICES) return new Response("KV Binding Missing", { status: 500 });
 
       const deviceId = url.searchParams.get('id');
       const coreType = url.searchParams.get('core');
       const deviceToken = url.searchParams.get('token');
 
-      // 1. Phân luồng thiết bị, ví dụ chỉ xử lý cho "zeroclaw"
-      if (coreType !== 'zeroclaw') {
-        return new Response(JSON.stringify({ error: "Invalid core type" }), { status: 400 });
-      }
+      if (coreType !== 'zeroclaw') return new Response("Invalid core", { status: 400 });
+      if (!deviceId || !deviceToken) return new Response("Missing params", { status: 400 });
 
-      if (!deviceId || !deviceToken) {
-        return new Response(JSON.stringify({ 
-          error: "Thiếu tham số định danh!",
-          received: { id: deviceId, token: deviceToken }
-        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
-      }
-
-      let deviceRecord;
-      try {
-        deviceRecord = await env.KV_DEVICES.get(deviceId, { type: "json" });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: "KV Read Error" }), { status: 500 });
-      }
+      let deviceRecord = await env.KV_DEVICES.get(deviceId, { type: "json" });
 
       if (!deviceRecord) {
-        // Register new device as pending
+        // Đăng ký thiết bị mới (Discovery Mode)
         await env.KV_DEVICES.put(deviceId, JSON.stringify({
           status: "pending_approval",
           token: deviceToken,
-          installedAt: Date.now()
+          registeredAt: Date.now(),
+          lastSeen: Date.now()
         }));
-        return new Response(JSON.stringify({ ota_status: "pending_approval" }), {
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ ota_status: "pending_approval" }), { headers: { 'Content-Type': 'application/json' } });
       }
 
-      // If pending, return pending
+      // Cập nhật thời gian kết nối cuối
+      deviceRecord.lastSeen = Date.now();
+      await env.KV_DEVICES.put(deviceId, JSON.stringify(deviceRecord));
+
       if (deviceRecord.status !== "approved") {
-        return new Response(JSON.stringify({ ota_status: "pending_approval" }), {
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ ota_status: "pending_approval" }), { headers: { 'Content-Type': 'application/json' } });
       }
 
-      // If approved, check token
-      if (deviceRecord.token !== deviceToken) {
-        return new Response(JSON.stringify({ error: "Token mismatch! Access Denied" }), { status: 403 });
-      }
-
-      // 2. Tạo TOML cấu hình tự động (nhúng API key từ biến môi trường Cloudflare)
-      const telegramIds = env.TELEGRAM_IDS || "975318323, 7237066439";
-      const cfAiKey = env.CF_AI_KEY || "your_cloudflare_ai_token";
-      const openRouterKey = env.OPENROUTER_KEY || "sk-or-v1-xxx";
-      const nvidiaNimKey = env.NVIDIA_NIM_KEY || "nvapi-xxx";
-
-      // Ưu tiên sử dụng Mã bảo mật từ biến môi trường (Shared Secret), 
-      // nếu không có mới dùng Device Token (Zero-Touch)
       const encryptionPassphrase = env.ENCRYPTION_KEY || deviceToken;
+      const telegramIds = env.TELEGRAM_IDS || "975318323, 7237066439";
 
-      // Mẫu giao diện TOML 3 lõi do lệnh từ Sếp
       const tomlConfig = `
-# ZeroClaw Configuration - Tự động tạo bởi OTA Server [${env.OTA_VERSION || '1.0'}]
+# ZeroClaw Auto-Generated Config v${env.OTA_VERSION || '8.0'}
 auto_approve = true
-sysinfo_read = true
-
 [server]
-host = "0.0.0.0"
 port = 42617
-
-[agent]
-# Model hiện đang được kích hoạt cấu hình chạy chính
-model = "cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-
-# 1. Cloudflare AI Serverless
-[provider.cloudflare]
-token = "${cfAiKey}"
-# default: @cf/meta/llama-3.3-70b-instruct-fp8-fast
-
-# 2. OpenRouter Aggregator
-[provider.openrouter]
-token = "${openRouterKey}"
-# alternative_model = "openrouter/qwen/qwen3.6-plus:free"
-
-# 3. NVIDIA NIM Microservices
-[provider.nvidia]
-token = "${nvidiaNimKey}"
-# alternative_model = "nvidia/moonshotai/kimi-k2-instruct"
-
 [channel.telegram]
-# Root Admin Tối Cao
 privileged_users = [${telegramIds}]
-allowed_users = [${telegramIds}]
-`;
+      `;
 
-      // 3. Mã hóa File TOML bằng AES-256-CBC OpenSSL Format
       const encryptedToml = await encryptAES_OpenSSL(tomlConfig, encryptionPassphrase);
 
-      // 4. Các lệnh Hot Scripts điều khiển từ xa (ADB/Renice)
-      const hotScripts = [
-        "echo '[OTA] Sync thành công!'",
-        "pgrep -f zeroclaw | xargs -r renice -n -20 || true",
-        "echo '[OTA] Màn hình thiết bị sẽ không bị tắt nhờ có Termux Wake Lock.'"
-      ];
-
-      // Zero-Touch Tunnel Binding: Bơm thẳng Token để Service kết nối tự động
-      if (env.TUNNEL_TOKEN) {
-        hotScripts.push(`zeroclaw tunnel bind ${env.TUNNEL_TOKEN}`);
-      }
-
-      // Thêm lệnh tắt màn hình giả phỏng ADB nếu cần:
-      // "adb shell input keyevent 26"
-
-      // 5. Đóng gói Payload theo thiết kế của Boss
       const responsePayload = {
-        version: env.OTA_VERSION || "1.0",
+        version: env.SOFTWARE_VERSION || "1.0",
+        binary_url: env.BINARY_URL || "", // URL tải binary mới nếu cần update
         encrypted_toml: encryptedToml,
-        hot_scripts: hotScripts,
+        hot_scripts: [
+          "echo '[OTA] Hệ thống đã được duyệt và đồng bộ!'"
+        ],
         ota_status: "active"
       };
 
-      return new Response(JSON.stringify(responsePayload, null, 2), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify(responsePayload, null, 2), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    return new Response("ZeroClaw OTA Server is running.", { status: 200 });
+    return new Response("ZeroClaw OTA Node v8.0 is active.", { status: 200 });
   },
 };

@@ -73,113 +73,80 @@ EOF
 chmod +x "$SVDIR/zeroclaw/log/run"
 mkdir -p ~/.zeroclaw/log
 
-# Tạo script đồng bộ OTA
+# Tạo script đồng bộ OTA Daemon (v8.0)
 rm -f ~/.zeroclaw/ota_sync.sh
 cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 #!/usr/bin/env bash
 # ============================================================================
-# ZERO-TOUCH OTA SYNC (Version: 2.1.0 - Universal)
+# ZERO-CLAW AUTONOMOUS OTA DAEMON (v8.0)
 # ============================================================================
 
-# Tự động nhận diện đường dẫn hệ thống
-if [ -z "$PREFIX" ]; then
-    PREFIX="/data/data/com.termux/files/usr"
-fi
+# 1. Môi trường & Version
+SOFTWARE_VERSION="1.0"
+[ -z "$PREFIX" ] && PREFIX="/data/data/com.termux/files/usr"
 USR_BIN="$PREFIX/bin"
-export SVDIR="$PREFIX/var/service"
-SERVICE_PATH="$SVDIR/zeroclaw"
 export PATH="$USR_BIN:$PATH"
+SERVICE_PATH="$PREFIX/var/service/zeroclaw"
 
 OTA_URL="https://ota.tradekiem.com/v1/sync"
 DEVICE_ID="$($USR_BIN/getprop ro.product.model 2>/dev/null | tr -d ' ')-$($USR_BIN/getprop ro.serialno 2>/dev/null)"
-[ "$DEVICE_ID" = "-" ] && DEVICE_ID="note10_boss"
+[ "$DEVICE_ID" = "-" ] && DEVICE_ID="boss_tablet"
 
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 DEFAULT_TOKEN="TradeKiemCom123@!"
 
-# Giải phóng Port
-$USR_BIN/lsof -ti:42617 | xargs kill -9 2>/dev/null || true
+echo "[$(date)] OTA Daemon v8.0 started..."
 
-# Nạp Token
-if [ -f "$PASSPHRASE_FILE" ]; then 
-    DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE")
-else
-    DEVICE_TOKEN="$DEFAULT_TOKEN"
-fi
+while true; do
+    # Nạp Token
+    [ -f "$PASSPHRASE_FILE" ] && DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE") || DEVICE_TOKEN="$DEFAULT_TOKEN"
 
-# ============================================================================
-# TỐI ƯU HÓA PORT & REMOTE ADB (v7.3)
-# ============================================================================
-echo -e "\033[36m[Kích Hoạt] Khởi động cầu nối Remote ADB & Dọn dẹp Port...\033[0m"
-
-# Kích hoạt ADB Wireless (Cần quyền USB Debugging trong máy)
-$USR_BIN/adb tcpip 5555 > /dev/null 2>&1 || true
-$USR_BIN/adb connect localhost:5555 > /dev/null 2>&1 || true
-
-# Kiểm tra xung đột Port cho Gateway
-TARGET_PORT=42617
-if $USR_BIN/lsof -ti:$TARGET_PORT >/dev/null 2>&1; then
-    echo -e "\033[33m[!] Port $TARGET_PORT bị chiếm. Chuyển sang Port dự phòng 42618...\033[0m"
-    TARGET_PORT=42618
-    # Cập nhật Port trong config
-    [ -f ~/.config/zeroclaw/config.toml ] && sed -i "s/port = 42617/port = $TARGET_PORT/g" ~/.config/zeroclaw/config.toml
-fi
-
-echo -e "\033[32mĐang đồng bộ cấu hình cho: $DEVICE_ID (Port: $TARGET_PORT)...\033[0m"
-
-MAX_RETRIES=3
-RETRY_COUNT=0
-SYNC_SUCCESS=false
-
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    # Tải dữ liệu
+    # Gửi yêu cầu Sync
     raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
-    if [ $? -ne 0 ]; then
-        FALLBACK_URL="https://ota.tradekiemcom.workers.dev/v1/sync"
-        raw_data=$($USR_BIN/curl -s -f --max-time 15 "$FALLBACK_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
-    fi
-
-    enc_toml=$(echo "$raw_data" | $USR_BIN/jq -r '.encrypted_toml' 2>/dev/null)
-    status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
-
-    if [ "$status" = "pending_approval" ]; then
-        echo -e "\033[1;33m[CHỜ PHÊ DUYỆT] Thiết bị ($DEVICE_ID) đang chờ duyệt.\033[0m"
-        break
-    fi
-
-    if [ -n "$enc_toml" ] && [ "$enc_toml" != "null" ]; then
-        # Thử giải mã
-        echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$DEVICE_TOKEN" > ~/.config/zeroclaw/config.toml.new 2>/dev/null
-        
-        if [ $? -eq 0 ] && [ -s ~/.config/zeroclaw/config.toml.new ]; then
-            mv ~/.config/zeroclaw/config.toml.new ~/.config/zeroclaw/config.toml
-            echo -e "\033[1;32m✅ Giải mã OTA thành công!\033[0m"
-            echo -n "$DEVICE_TOKEN" > "$PASSPHRASE_FILE"
-            SYNC_SUCCESS=true
-            echo "$raw_data" | $USR_BIN/jq -r '.hot_scripts[]?' 2>/dev/null | while read cmd; do eval "$cmd"; done
-            break
-        fi
-    fi
-
-    # Nếu sai và chưa dùng mặc định, thử mặc định
-    if [ "$DEVICE_TOKEN" != "$DEFAULT_TOKEN" ] && [ $RETRY_COUNT -eq 0 ]; then
-        DEVICE_TOKEN="$DEFAULT_TOKEN"
-        continue
-    fi
-
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    echo -e "\033[31m[LỖI] Giải mã OTA thất bại (Lần $RETRY_COUNT/$MAX_RETRIES).\033[0m"
     
-    if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-        echo -e "Vui lòng nhập Token bảo mật (hoặc Enter để dùng mặc định):"
-        read -p "Token: " INPUT_TOKEN
-        [ -n "$INPUT_TOKEN" ] && DEVICE_TOKEN="$INPUT_TOKEN" || DEVICE_TOKEN="$DEFAULT_TOKEN"
+    if [ $? -eq 0 ]; then
+        status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
+        
+        if [ "$status" = "pending_approval" ]; then
+            echo "[WAIT] Thiết bị đang chờ duyệt trên Server..."
+        elif [ "$status" = "active" ]; then
+            # A. KIỂM TRA CẬP NHẬT PHẦN MỀM (Self-Update)
+            remote_ver=$(echo "$raw_data" | $USR_BIN/jq -r '.version' 2>/dev/null)
+            binary_url=$(echo "$raw_data" | $USR_BIN/jq -r '.binary_url' 2>/dev/null)
+            
+            if [ "$remote_ver" != "$SOFTWARE_VERSION" ] && [ "$binary_url" != "" ] && [ "$binary_url" != "null" ]; then
+                echo "[UPDATE] Phát hiện bản nâng cấp $remote_ver. Đang tải..."
+                $USR_BIN/curl -L -o "$USR_BIN/zeroclaw.tmp" "$binary_url"
+                if [ $? -eq 0 ]; then
+                    mv "$USR_BIN/zeroclaw.tmp" "$USR_BIN/zeroclaw"
+                    chmod +x "$USR_BIN/zeroclaw"
+                    SOFTWARE_VERSION="$remote_ver"
+                    echo "[OK] Đã nâng cấp lên version $remote_ver."
+                    sv restart zeroclaw 2>/dev/null || true
+                fi
+            fi
+
+            # B. ĐỒNG BỘ CẤU HÌNH (TOML)
+            enc_toml=$(echo "$raw_data" | $USR_BIN/jq -r '.encrypted_toml' 2>/dev/null)
+            if [ -n "$enc_toml" ] && [ "$enc_toml" != "null" ]; then
+                echo "$enc_toml" | $USR_BIN/openssl enc -d -aes-256-cbc -a -pbkdf2 -pass pass:"$DEVICE_TOKEN" > ~/.config/zeroclaw/config.toml.new 2>/dev/null
+                if [ $? -eq 0 ] && [ -s ~/.config/zeroclaw/config.toml.new ]; then
+                    mv ~/.config/zeroclaw/config.toml.new ~/.config/zeroclaw/config.toml
+                    echo "[SYNC] Đã đồng bộ cấu hình mới."
+                    sv restart zeroclaw 2>/dev/null || true
+                fi
+            fi
+
+            # C. CHẠY HOT SCRIPTS
+            echo "$raw_data" | $USR_BIN/jq -r '.hot_scripts[]?' 2>/dev/null | while read cmd; do eval "$cmd"; done
+        fi
+    else
+        echo "[ERROR] Không thể kết nối OTA Server. Thử lại sau..."
     fi
+
+    # Nghỉ 10 phút trước khi check lần tiếp theo
+    sleep 600
 done
-
-[ "$SYNC_SUCCESS" = "false" ] && echo -e "\033[33m[!] Bỏ qua đồng bộ OTA.\033[0m"
-
-sv restart "$SERVICE_PATH" || true
 EOF
 
 chmod +x ~/.zeroclaw/ota_sync.sh
