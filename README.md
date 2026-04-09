@@ -23,7 +23,13 @@ cd ZeroClaw-Android
 chmod +x install.sh && ./install.sh
 ```
 
-## 📙 Tài liệu chi tiết
+## 🏢 Hệ Sinh Thái Doanh Nghiệp AI (Corporate OS)
+ZeroClaw không chỉ là tool kỹ thuật, nó là giải pháp cho bài toán kinh doanh:
+- 💡 **[Tầm nhìn Hệ sinh thái Doanh nghiệp](docs/HE_SINH_THAI_DOAN_NGHIEP.md)**: Trading, Content, Sales.
+- 📋 **[Thư viện Flow mẫu cho nhân sự AI](docs/FLOWS_MAU_DOANH_NGHIEP.md)**: Copy-paste cấu hình Agent.
+- 🏬 **[Mô hình Công ty "A.I Do Anything"](docs/MO_HINH_CONG_TY_AI.md)**: Cách tổ chức Agent theo phòng ban.
+
+## 📙 Tài liệu kỹ thuật
 - 👉 **[Hướng dẫn sử dụng Dashboard v8.2](docs/HUONG_DAN_SU_DUNG.md)**
 - 👉 **[Cách thiết lập OTA Server (Worker & Dashboard)](docs/HUONG_DAN_TAO_OTA_WORKER.md)**
 - 👉 **[Tối ưu Pin & Remote ADB](docs/BATTERY_ADB_SETUP.md)**
