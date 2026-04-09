@@ -20,7 +20,7 @@ pkg update -y || apt-get update -y || {
 
 echo "[Thông tin] Cài đặt các công cụ nền tảng (Hardened Mode)..."
 # Cài đặt từng gói để tránh lỗi một gói làm hỏng cả chuỗi
-for pkg_name in curl jq wget tar openssl ca-certificates lsof; do
+for pkg_name in curl jq wget tar openssl ca-certificates lsof termux-api android-tools; do
     echo "Đang cài đặt $pkg_name..."
     pkg install -y $pkg_name || apt-get install -y $pkg_name || echo "Bỏ qua lỗi cài đặt $pkg_name (có thể đã tồn tại)."
 done

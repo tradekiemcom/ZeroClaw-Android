@@ -22,49 +22,43 @@ chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
 while true; do
     bash "$SCRIPTS_DIR/01-sys-diagnostics.sh"
     
-    echo -e "\nBạn có muốn thực hiện [Dọn dẹp & Giải phóng dung lượng] không? (y/n)"
-    read -p "Lựa chọn của bạn (Mặc định n): " choice
-    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+    echo -e "\n\033[36mAnh muốn thực hiện hành động nào?\033[0m"
+    echo -e "  1. [DỌN DẸP] Quét rác, Giải phóng Port & RAM (Khuyên dùng)"
+    echo -e "  2. [CÀI ĐẶT] Bắt đầu cài đặt ngay"
+    echo -e "  3. [THOÁT] Dừng lại"
+    read -p "Lựa chọn (1/2/3): " choice
+    if [[ "$choice" == "1" ]]; then
         bash "$SCRIPTS_DIR/00-deep-clean.sh"
         echo -e "\n--- Đang đánh giá lại hệ thống sau dọn dẹp ---\n"
+        sleep 2
         continue
+    elif [[ "$choice" == "2" ]]; then
+        break
+    else
+        echo -e "\033[33mHủy bỏ quá trình cài đặt.\033[0m"
+        exit 0
     fi
-    break
 done
 
-echo -e "\nBạn có muốn bắt đầu tiến trình cài đặt ZeroClaw ngay bây giờ không? (y/n)"
-read -p "Xác nhận cài định (y/n): " confirm
-if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-    echo -e "\033[33mHủy bỏ quá trình cài đặt theo yêu cầu.\033[0m"
-    exit 0
-fi
-
-# Nhập Token bảo mật OTA nếu có
-echo -e "\n\033[36m>>> Cấu hình Token Bảo Mật OTA <<<\033[0m"
-echo -e "Nếu anh đã cài ENCRYPTION_KEY trên Worker (ví dụ: TradeKiemCom123@!), hãy nhập vào đây."
-echo -e "Nếu bỏ trống, máy sẽ tự sinh mã ngẫu nhiên (Zero-Touch)."
-read -p "Nhập mã bảo mật (Để trống nếu không rõ): " OTA_TOKEN
-export OTA_TOKEN
-
 # ==============================================================================
-# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC
+# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v7.3
 # ==============================================================================
 
-echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android...\033[0m\n"
+echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v7.3...\033[0m\n"
 
-echo -e "\n\033[32m[1/4] Cấu hình môi trường bảo mật...\033[0m"
-bash "$SCRIPTS_DIR/01-check-env.sh"
-
-echo -e "\n\033[32m[2/4] Cài đặt Dependencies nền tảng...\033[0m"
+echo -e "\n\033[32m[1/4] Cài đặt Dependencies (curl, openssl, adb...)\033[0m"
 bash "$SCRIPTS_DIR/02-install-deps.sh"
 
-echo -e "\n\033[32m[3/4] Tải thuật toán lõi ZeroClaw (Pre-built Android Binary)...\033[0m"
+echo -e "\n\033[32m[2/4] Tải và cấu hình lõi ZeroClaw (Native Optimization)...\033[0m"
 bash "$SCRIPTS_DIR/03-install-binary.sh"
 
-echo -e "\n\033[32m[4/4] Cài đặt trạm trung chuyển OTA, Service Daemon & ADB...\033[0m"
+echo -e "\n\033[32m[3/4] Cài đặt trạm trung chuyển OTA, Service & Remote ADB...\033[0m"
 bash "$SCRIPTS_DIR/06-setup-ota.sh"
 
-echo -e "\n\033[1;32m✅ Hệ thống đã được thiết lập thành công!\033[0m"
+echo -e "\n\033[32m[4/4] Kiểm tra chéo toàn bộ hệ thống...\033[0m"
+bash "$SCRIPTS_DIR/99-verify-final.sh"
 
-echo -e "\n\033[36m[6/6] Tự động kết nối với Trạm Điều Khiển OTA ngay lập tức...\033[0m"
+echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - HÃY TRẢI NGHIỆM ZEROCLAW v7.3!\033[0m"
+
+# Tự động kích hoạt Sync lần đầu
 bash ~/.zeroclaw/ota_sync.sh

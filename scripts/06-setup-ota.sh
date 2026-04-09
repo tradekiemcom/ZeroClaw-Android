@@ -107,7 +107,25 @@ else
     DEVICE_TOKEN="$DEFAULT_TOKEN"
 fi
 
-echo -e "\033[32mĐang đồng bộ cấu hình bảo mật cho: $DEVICE_ID...\033[0m"
+# ============================================================================
+# TỐI ƯU HÓA PORT & REMOTE ADB (v7.3)
+# ============================================================================
+echo -e "\033[36m[Kích Hoạt] Khởi động cầu nối Remote ADB & Dọn dẹp Port...\033[0m"
+
+# Kích hoạt ADB Wireless (Cần quyền USB Debugging trong máy)
+$USR_BIN/adb tcpip 5555 > /dev/null 2>&1 || true
+$USR_BIN/adb connect localhost:5555 > /dev/null 2>&1 || true
+
+# Kiểm tra xung đột Port cho Gateway
+TARGET_PORT=42617
+if $USR_BIN/lsof -ti:$TARGET_PORT >/dev/null 2>&1; then
+    echo -e "\033[33m[!] Port $TARGET_PORT bị chiếm. Chuyển sang Port dự phòng 42618...\033[0m"
+    TARGET_PORT=42618
+    # Cập nhật Port trong config
+    [ -f ~/.config/zeroclaw/config.toml ] && sed -i "s/port = 42617/port = $TARGET_PORT/g" ~/.config/zeroclaw/config.toml
+fi
+
+echo -e "\033[32mĐang đồng bộ cấu hình cho: $DEVICE_ID (Port: $TARGET_PORT)...\033[0m"
 
 MAX_RETRIES=3
 RETRY_COUNT=0
