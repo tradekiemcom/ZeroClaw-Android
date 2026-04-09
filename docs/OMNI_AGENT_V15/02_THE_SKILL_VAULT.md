@@ -15,7 +15,7 @@ Omni-Agent sở hữu sức mạnh thông qua các **Kỹ năng (Skills)**. Mỗ
 
 ## 📣 2. Kỹ Năng Sáng Tạo (Marketing Skillset)
 - **Công cụ**: Web Search, Image Generator (nếu có), Viral Trend Scraper.
-- **Vai trò**: Tự động chuyển đổi thành "Content Creator" khi Founder yêu cầu làm truyền thông.
+- **Vai trò**: Tự động chuyển đổi thành "Content Creator" khi người dùng yêu cầu làm truyền thông.
 - **Tiến trình**:
   - Quét trend -> Viết kịch bản -> Tối ưu hashtag -> Sẵn sàng đăng bài.
 
@@ -36,7 +36,7 @@ Omni-Agent sở hữu sức mạnh thông qua các **Kỹ năng (Skills)**. Mỗ
 ---
 
 ## ⚡ Cách Sử Dụng Skills Hiệu Quả
-Founder chỉ cần nói: 
+Người dùng chỉ cần nói: 
 - *"Hãy dùng kỹ năng Trading để xem giá vàng"*
 - *"Hãy dùng kỹ năng Marketing viết bài này"*
 - Hoặc đơn giản: *"Check giá vàng và làm bài post Tiktok"* (Omni-Agent sẽ tự nhận diện và dùng cả 2 kỹ năng cùng lúc).

@@ -34,9 +34,9 @@ Kỹ năng giúp Agent cập nhật hơi thở thị trường 24/7.
 Kỹ năng quan trọng nhất để điều phối các kỹ năng khác.
 
 ### A. Nội dung System Prompt (Skill Prompt)
-> "Nhiệm vụ của bạn là nhận yêu cầu lớn của Founder và chia nhỏ thành các nhiệm vụ. Nếu Founder muốn trade Vàng, bạn phải ra lệnh cho News Fetcher quét tin trước, sau đó gọi Analyst phân tích kỹ thuật, cuối cùng mới đưa ra phương án giao dịch."
+> "Nhiệm vụ của bạn là nhận yêu cầu lớn của người dùng và chia nhỏ thành các nhiệm vụ. Nếu người dùng muốn trade Vàng, bạn phải ra lệnh cho News Fetcher quét tin trước, sau đó gọi Analyst phân tích kỹ thuật, cuối cùng mới đưa ra phương án giao dịch."
 
 ---
 
 ## 🔗 Cách Tích Hợp
-Hãy Copy phần **System Prompt** dán vào mục **"Personality/Skill Prompt"** trên Dashboard, và Đảm bảo tệp **Command** (ví dụ `analysis.sh`) đã tồn tại trên thiết bị Note 10+.
+Hãy Copy phần **System Prompt** dán vào mục **"Personality/Skill Prompt"** trên Dashboard, và Đảm bảo tệp **Command** (ví dụ `analysis.sh`) đã tồn tại trên thiết bị.

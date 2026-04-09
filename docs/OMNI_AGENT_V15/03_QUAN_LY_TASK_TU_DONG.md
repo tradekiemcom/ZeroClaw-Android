@@ -28,9 +28,9 @@ Hệ thống Task giúp xâu chuỗi các Skill bạn đã cài đặt:
 
 ## 🛡️ 3. Lưu Ý Về Hiệu Năng
 
-- Đừng đặt các Task quá dày đặc (Ví dụ mỗi 1 phút). Note 10+ có thể xử lý tốt nhưng Model LLM sẽ tốn nhiều Token.
+- Đừng đặt các Task quá dày đặc (Ví dụ mỗi 1 phút). Thiết bị có thể xử lý tốt nhưng Model LLM sẽ tốn nhiều Token.
 - Khuyên dùng: Khoảng cách giữa các Task nên từ **30 - 60 phút** để đảm bảo dữ liệu thị trường có sự thay đổi đáng kể.
 
 ---
 
-*(Giờ đây, Note 10+ của bạn đã trở thành một Robot tự hành 24/7 thực thụ)*
+*(Bây giờ, thiết bị của bạn đã trở thành một Robot tự hành 24/7 thực thụ)*

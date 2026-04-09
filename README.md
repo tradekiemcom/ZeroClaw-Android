@@ -1,6 +1,6 @@
 # 🌀 ZeroClaw-Android: Omni-Agent Dashboard
 
-Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw)** chuyên biệt để biến thiết bị **Android (Note 10+/TV Box)** thành một Siêu Trợ Lý Đa Năng. Toàn bộ việc quản lý được thực hiện trực quan thông qua Giao diện Web (GUI).
+Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw)** chuyên biệt để biến thiết bị **Android** thành một Siêu Trợ Lý Đa Năng. Toàn bộ việc quản lý được thực hiện trực quan thông qua Giao diện Web (GUI).
 
 ---
 

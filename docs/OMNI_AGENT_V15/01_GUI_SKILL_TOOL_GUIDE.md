@@ -46,4 +46,4 @@ Trong ZeroClaw, **Workflow** được điều phối chủ yếu qua **Master Sy
 ---
 
 ## 🏁 Kết luận
-Giao diện GUI giúp bạn quản lý "Siêu Trợ Lý" một cách trực quan và nhanh chóng. Mọi thay đổi trên Web sẽ tự động được đồng bộ vào file `.toml` trên thiết bị Note 10+.
+Giao diện GUI giúp bạn quản lý "Siêu Trợ Lý" một cách trực quan và nhanh chóng. Mọi thay đổi trên Web sẽ tự động được đồng bộ vào file `.toml` trên thiết bị Android.
