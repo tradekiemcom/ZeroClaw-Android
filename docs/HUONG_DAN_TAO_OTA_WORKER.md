@@ -31,62 +31,30 @@ Bởi hệ thống mã hóa OTA của chúng ta dùng thư viện `crypto` của
 3. Cuộn xuống phần **Compatibility flags** (Cờ tương thích) và bấm **Edit**.
 4. Gõ thêm chữ `nodejs_compat` vào danh sách cờ rồi lưu lại.
 
-### Bước 4: Khai Báo Biến Môi Trường (Environment Variables)
-Đến đây bạn khai báo các API Key quan trọng.
-1. Tại Tab **Settings**, chọn mục **Variables and Secrets** (Biến số).
-2. Cuộn xuống phần **Environment Variables** và bấm **Edit variables**.
-3. Lần lượt bấm Add variable và nhập ĐÚNG các tên biến sau bên cột trái, và Cấu hình mẫu ở cột phải:
-   - `OTA_VERSION`: Nhập `1.2.6` (Hoặc số phiên bản bạn lưu ý).
-   - `TELEGRAM_IDS`: Nhập `975318323, 7237066439`.
-   - `TUNNEL_TOKEN`: Nhập Token do Cloudflare cấp của Tunnel Zero Trust.
-   - `OPENROUTER_KEY`: Nhập khóa API của OpenRouter.
-   - `CF_AI_KEY` / `NVIDIA_NIM_KEY`: Nhập khóa API mô hình tương ứng (nếu có).
-4. Bấm **Save and deploy**.
+### Bước 4: Khai Báo Biến Môi Trường (v8.2)
 
-### Bước 5: (Bắt Buộc) Liên Kết CSDL Quản Trị Thiết Bị (KV Namespace)
-Hệ thống sử dụng mô hình MDM Zero-Touch: thiết bị điện thoại tự sinh mã Token riêng biệt. Bạn cần cấp cho Worker một công cụ để lưu trữ danh sách thiết bị.
-1. Ở cột Menu Cloudflare phía ngoài cùng bên trái, chọn **Workers & Pages** -> **KV**.
-2. Bấm **Create a namespace**, nhập tên là `DEVICES` (hoặc `KV_DEVICES`) rồi bấm Add.
-3. Quay lại trang cấu hình của Worker `zeroclaw-ota-server`. 
-4. Chuyển sang Tab **Settings** -> **Bindings** -> Bấm **Add**.
-5. Chọn loại **KV Namespace**, điền phần `Variable name` là `KV_DEVICES` và chọn tên KV bạn vừa tạo. Bấm Save.
+Tại Tab **Settings** > **Variables and Secrets**, anh hãy khai báo các biến sau:
 
-*Lưu ý: Sau khi điện thoại chạy cài đặt `install.sh`, mã thiết bị (Ví dụ: `SM-N975F-XYZ`) sẽ hiện trong Namespace KV này với trạng thái `pending_approval`. Bạn chỉ cần vào đây, edit object thiết bị đó thành `"status": "approved"` thì điện thoại tự động bốc được file OTA mã hoá về chạy!*
-
-### Bước 5: (Tùy chọn) Ràng Buộc Tên Miền
-1. Trở về Tab **Settings**, chọn **Triggers**.
-2. Tại phần **Custom Domains**, thêm và gõ `ota.tradekiem.com` (Phải đảm bảo tên miền tradekiem.com đã kết nối cho Cloudflare của bạn).
-
-Trạm OTA bây giờ đã sẵn sàng lắng nghe ở địa chỉ Cloudflare `.workers.dev` gốc hoặc tên miền bạn gán. Mọi điện thoại lúc cài `install.sh` đều có thể tải xuống.
+| Tên Biến | Cấu hình mẫu | Mô tả |
+| :--- | :--- | :--- |
+| `AdminPass` | `TradeKiemCom888` | Mật khẩu để đăng nhập Dashboard `/admin`. |
+| `ENCRYPTION_KEY`| `TradeKiemCom123@!` | Mã mã hóa chung (Shared Secret) cho file config. |
+| `OTA_VERSION` | `8.2.0` | Phiên bản OTA hiện tại. |
+| `TELEGRAM_IDS` | `975318323, 7237066439` | Danh sách ID admin được quyền chat Telegram. |
+| `SOFTWARE_VERSION`| `1.0.0` | Phiên bản phần mềm ZeroClaw Core. |
+| `BINARY_URL` | `https://.../zeroclaw` | Link tải bản cập nhật binary (nếu cần Auto-Update). |
 
 ---
 
-## 💻 Cách 2: Triển Khai Chuyên Nghiệp Bằng Trình Lệnh (Wrangler CLI)
+## 🖥 IV. QUẢN TRỊ QUA DASHBOARD (v8.2)
 
-Nếu bạn có sẵn MacOS/Linux/Windows Terminal.
+Từ phiên bản v8.2, anh không cần sửa KV thủ công nữa. Hãy sử dụng giao diện Web:
 
-### Bước 1: Cấu hình mã nguồn
-1. Mở file `ota-server/wrangler.toml` trên máy bạn.
-2. Dùng lệnh sau để tạo KV Namespace tự động: `npx wrangler kv:namespace create DEVICES`
-3. Lệnh sẽ in ra màn hình 3 dòng mã. Bạn copy dòng có khoá `id=".......""` và dán vào file `wrangler.toml` ở mục `[[kv_namespaces]]`.
-4. Điền sẵn các giá trị cấu hình API Key vào khu vực `[vars]`.
-3. Sửa định tuyến (Routes) nếu bạn muốn đẩy thẳng lên tên miền bạn sở hữu.
-
-### Bước 2: Tải Wrangler và Đẩy Mạng
-1. Mở cửa sổ Terminal tại khu vực thư mục `ota-server/`:
-   ```bash
-   cd ZeroClaw-Android/ota-server
-   ```
-2. Cài đặt Wrangler và ra lệnh đẩy Code (Yêu cầu máy tính cài sẵn Node.JS):
-   ```bash
-   npm i -g wrangler
-   npx wrangler login 
-   # Trình duyệt sẽ mở ra, bạn đăng nhập bấm Allow để cấp quyền lệnh CLI
-   npx wrangler deploy
-   ```
-
-3. Mọi công việc cấu hình, cờ `nodejs_compat`, khai báo biến đều đã được `Wrangler` tự động đọc từ file `wrangler.toml` rồi mang lên máy chủ của Cloudflare nhanh chóng. Quá trình mất khoảng 30s.
+1. **Truy cập**: `https://ten-worker-cua-anh.workers.dev/admin`
+2. **Đăng nhập**: Nhập `AdminPass` đã cài ở Bước 4.
+3. **Phê duyệt**: Các máy mới cài đặt sẽ hiện ở bảng **CONNECTED DEVICES**. Anh chỉ cần bấm **APPROVE** là xong.
+4. **Cấu hình Version**: Anh có thể đổi bản `Software Version` và `Binary URL` ngay trên Web. Các máy đang bật **Auto-Update** sẽ tự động thấy và nâng cấp sau mỗi 10 phút.
 
 ---
-**🎉 Khởi Tạo Thành Công!** 
-- Khi trạm OTA đã "lên sóng", ở bên điện thoại chạy lệnh `bash ~/.zeroclaw/ota_sync.sh` sẽ nhận được Cấu Hình Giải Mã thành công. Lỗi thiết lập sẽ hoàn toàn biến mất.
+
+*(Mọi thiết bị điện thoại giờ đây đều có thể Discovery tự động, Sếp chỉ việc ngồi trước màn hình và Duyệt!)*

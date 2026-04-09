@@ -9,10 +9,11 @@ Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw
 - Thiết lập sẵn các công cụ giao tiếp liên mạng thông qua Cloudflare Tunnel cho Android.
 - Tự động hóa đánh giá năng lực phần cứng để khuyến cáo sử dụng phù hợp.
 
-## 📙 Hướng Dẫn Sử Dụng
-Mọi chi tiết về cách cấu hình ZeroClaw sau cài đặt đều nằm ở đây:
-👉 **[TÀI LIỆU HƯỚNG DẪN KỸ THUẬT (Tiếng Việt)](docs/HUONG_DAN_SU_DUNG.md)**
-👉 **[HƯỚNG DẪN TẠO TRẠM CLOUDFLARE OTA WORKER (Tiếng Việt)](docs/HUONG_DAN_TAO_OTA_WORKER.md)**
+## 🆕 Tính Năng Mới (v8.2 - Autonomous Release)
+- **Admin Dashboard**: Quản lý thiết bị trực quan qua giao diện Web Cyberpunk.
+- **Duyệt máy Một-Chạm**: Admin phê duyệt thiết bị ngay trên Web thay vì sửa DB.
+- **Granular Auto-Update**: Bật/Tắt tự động cập nhật phần mềm cho từng thiết bị riêng biệt.
+- **OTA Daemon (vĩnh cửu)**: Tiến trình chạy ngầm tự động đồng bộ cấu hình và tự nâng cấp phiên bản lõi.
 
 ## 🚀 Cài Đặt Nhanh (trên thiết bị Android > Termux)
 ```bash
@@ -22,4 +23,9 @@ cd ZeroClaw-Android
 chmod +x install.sh && ./install.sh
 ```
 
-*(Sau đó gõ `zeroclaw agent` để lập tức trò chuyện)*
+## 📙 Tài liệu chi tiết
+- 👉 **[Hướng dẫn sử dụng Dashboard v8.2](docs/HUONG_DAN_SU_DUNG.md)**
+- 👉 **[Cách thiết lập OTA Server (Worker & Dashboard)](docs/HUONG_DAN_TAO_OTA_WORKER.md)**
+- 👉 **[Tối ưu Pin & Remote ADB](docs/BATTERY_ADB_SETUP.md)**
+
+*(Sau khi cài đặt thành công, đơn giản là truy cập `/admin` trên Worker của bạn để quản lý)*
