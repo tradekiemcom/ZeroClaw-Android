@@ -9,11 +9,11 @@ Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw
 - Thiết lập sẵn các công cụ giao tiếp liên mạng thông qua Cloudflare Tunnel cho Android.
 - Tự động hóa đánh giá năng lực phần cứng để khuyến cáo sử dụng phù hợp.
 
-## 🆕 Tính Năng Mới (v8.2 - Autonomous Release)
+## 🆕 Tính Năng Mới (v13.0 - Strategic Release)
+- **Strategic Orchestration**: CEO Agent điều phối chiến dịch đa tầng (Marketing + R&D + Trading + Sales).
+- **Trading Connectors**: Tích hợp cTrader Open API & MT5 Web Gateway.
+- **Micro-Org Architecture**: Chạy 15+ Agent song song trên một thiết bị Note 10+.
 - **Admin Dashboard**: Quản lý thiết bị trực quan qua giao diện Web Cyberpunk.
-- **Duyệt máy Một-Chạm**: Admin phê duyệt thiết bị ngay trên Web thay vì sửa DB.
-- **Granular Auto-Update**: Bật/Tắt tự động cập nhật phần mềm cho từng thiết bị riêng biệt.
-- **OTA Daemon (vĩnh cửu)**: Tiến trình chạy ngầm tự động đồng bộ cấu hình và tự nâng cấp phiên bản lõi.
 
 ## 🚀 Cài Đặt Nhanh (trên thiết bị Android > Termux)
 ```bash
@@ -23,13 +23,14 @@ cd ZeroClaw-Android
 chmod +x install.sh && ./install.sh
 ```
 
-## 🏢 Cẩm Nang Doanh Nghiệp AI (Autonomous Corp v12.0)
+## 🏢 Cẩm Nang Doanh Nghiệp AI (Autonomous Corp v13.0)
 Hệ thống tài liệu **"Cầm tay chỉ việc"** để thiết lập 15+ nhân sự AI trên một thiết bị:
-- 👑 **[MASTER MANUAL: CORE PA & CEO](docs/MASTER_MANUAL/01_CORE_STRUCTURE.md)**: Hướng dẫn thiết lập bộ não điều hành.
+- 👑 **[MASTER MANUAL: CORE PA & CEO](docs/MASTER_MANUAL/01_CORE_STRUCTURE.md)**: Điều hành & Chiến dịch chiến lược.
 - 💹 **[MARKET ANALYST & TRADING](docs/MASTER_MANUAL/02_TRADING_DASHBOARD.md)**: Hệ thống soi kèo và thực thi lệnh.
+- 🔌 **[TRADING API INTEGRATION](docs/MASTER_MANUAL/05_TRADING_API_INTEGRATION.md)**: Kết nối cTrader & MT5 Gateway.
 - 📣 **[CONTENT CREATOR & SOCIAL](docs/MASTER_MANUAL/03_MARKETING_ENGINE.md)**: Nhà máy sản xuất nội dung tự động.
-- 🏦 **[FINANCE, SALES & R&D](docs/MASTER_MANUAL/04_FINANCE_SALES_RD.md)**: Quản lý dòng tiền, chốt sale và săn công nghệ.
-- 🛠️ **[KỸ THUẬT CHẠY ĐA AGENT (SINGLE-DEVICE)](docs/MASTER_MANUAL/04_FINANCE_SALES_RD.md)**: Cách chạy hàng chục Agent trên 1 máy Note 10+.
+- 🏦 **[FINANCE, SALES & R&D](docs/MASTER_MANUAL/04_FINANCE_SALES_RD.md)**: Quản lý dòng tiền và săn công nghệ.
+- 🛠️ **[KỸ THUẬT CHẠY ĐA AGENT (SINGLE-DEVICE)](docs/MASTER_MANUAL/99_TECH_GUIDE_MULTI_DAEMON.md)**: Xác minh xử lý song song trên Android.
 
 ## 📙 Tài liệu kỹ thuật
 - 👉 **[Hướng dẫn sử dụng Dashboard v8.2](docs/HUONG_DAN_SU_DUNG.md)**

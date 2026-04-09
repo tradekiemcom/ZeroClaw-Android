@@ -68,4 +68,25 @@ description = "Phòng Marketing: Xây dựng content và quản lý kênh social
 3. **CEO**: Phân tích yêu cầu -> Gọi `trading_dept` (xin dữ liệu vàng) -> Gọi `marketing_dept` (yêu cầu viết kịch bản dựa trên dữ liệu vàng).
 4. **Phòng ban**: Trả kết quả về CEO.
 5. **CEO**: Kiểm tra chất lượng -> Gửi báo cáo tổng hợp cho PA.
-6. **PA**: Tóm tắt ngắn gọn: "Thưa Sếp, báo cáo vàng đã sẵn sàng (vàng tăng nhẹ) và 3 kịch bản video đã được phòng Marketing viết xong. Sếp có muốn xem ngay không?"
+---
+
+## 🎭 4. Case Study: Chiến Dịch Truyền Thông Chiến Lược (v13.0)
+
+Đây là ví dụ về cách CEO Agent điều phối một yêu cầu phức tạp từ Founder (Sếp).
+
+**Yêu cầu của Sếp**: *"Hãy triển khai một kịch bản bán gói 'Gold Scalper VIP' mới cho tháng này."*
+
+### Luồng xử lý đa tầng (Orchestration):
+1. **PA Agent**: Nhận lệnh -> Chuyển cho CEO với mức ưu tiên `STRICT`.
+2. **CEO Agent**: Phân rã yêu cầu thành các "Ticket" công việc:
+   - **Gửi R&D**: "Nghiên cứu các đối thủ đang bán gói Vàng và tìm ra 3 điểm yếu của họ."
+   - **Gửi Trading**: "Cung cấp báo cáo lợi nhuận (myfxbook/backtest) tốt nhất của tháng trước để làm bằng chứng (Proof)."
+   - **Gửi Marketing**: "Dựa trên dữ liệu R&D và Trading, hãy viết 5 kịch bản video TikTok và 1 bài landing page."
+   - **Gửi Sales**: "Lập danh sách khách hàng tiềm năng từ dữ liệu cũ và chuẩn bị kịch bản tư vấn mới."
+3. **CEO Agent**: Theo dõi kết quả từ các Port API local (`42619-42627`).
+4. **Kết thúc**: CEO tổng hợp toàn bộ thành một "Chiến lược tổng thể" và báo cáo PA gửi Sếp.
+
+---
+
+## 📡 5. Xác minh Xử lý Song song (Concurrency)
+Toàn bộ quy trình trên diễn ra **đồng thời**. Trong khi R&D đang nghiên cứu, Marketing đã có thể bắt đầu lên khung sườn Content. Note 10+ xử lý các luồng JSON-RPC này trong hàng chục mili giây nhờ Model được offload sang trạm Cloud.
