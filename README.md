@@ -23,16 +23,16 @@ cd ZeroClaw-Android
 chmod +x install.sh && ./install.sh
 ```
 
-## 🏢 Hệ Sinh Thái Doanh Nghiệp AI (Corporate OS)
-ZeroClaw không chỉ là tool kỹ thuật, nó là giải pháp cho bài toán kinh doanh:
-- 👑 **[THE FULL AI CORPORATE BLUEPRINT (v10.0)](docs/BLUEPRINT_CORPORATE/99_HUONG_DAN_TRIEN_KHAI_FULL.md)**: Hướng dẫn A-Z xây dựng công ty AI 5 phòng ban.
-- 💡 [Tầm nhìn Hệ sinh thái Doanh nghiệp](docs/HE_SINH_THAI_DOAN_NGHIEP.md): Trading, Content, Sales.
-- 📋 [Thư viện Flow mẫu cho nhân sự AI](docs/FLOWS_MAU_DOAN_NGHIEP.md): Copy-paste cấu hình Agent.
-- 🏬 [Mô hình Agent nội bộ (Internal RPC)](docs/MO_HINH_CONG_TY_AI.md): Cách Agent kết nối không dùng Telegram.
+## 🏢 Cẩm Nang Doanh Nghiệp AI (Autonomous Corp v12.0)
+Hệ thống tài liệu **"Cầm tay chỉ việc"** để thiết lập 15+ nhân sự AI trên một thiết bị:
+- 👑 **[MASTER MANUAL: CORE PA & CEO](docs/MASTER_MANUAL/01_CORE_STRUCTURE.md)**: Hướng dẫn thiết lập bộ não điều hành.
+- 💹 **[MARKET ANALYST & TRADING](docs/MASTER_MANUAL/02_TRADING_DASHBOARD.md)**: Hệ thống soi kèo và thực thi lệnh.
+- 📣 **[CONTENT CREATOR & SOCIAL](docs/MASTER_MANUAL/03_MARKETING_ENGINE.md)**: Nhà máy sản xuất nội dung tự động.
+- 🏦 **[FINANCE, SALES & R&D](docs/MASTER_MANUAL/04_FINANCE_SALES_RD.md)**: Quản lý dòng tiền, chốt sale và săn công nghệ.
+- 🛠️ **[KỸ THUẬT CHẠY ĐA AGENT (SINGLE-DEVICE)](docs/MASTER_MANUAL/04_FINANCE_SALES_RD.md)**: Cách chạy hàng chục Agent trên 1 máy Note 10+.
 
 ## 📙 Tài liệu kỹ thuật
 - 👉 **[Hướng dẫn sử dụng Dashboard v8.2](docs/HUONG_DAN_SU_DUNG.md)**
 - 👉 **[Cách thiết lập OTA Server (Worker & Dashboard)](docs/HUONG_DAN_TAO_OTA_WORKER.md)**
-- 👉 **[Tối ưu Pin & Remote ADB](docs/BATTERY_ADB_SETUP.md)**
 
-*(Sau khi cài đặt thành công, đơn giản là truy cập `/admin` trên Worker của bạn để quản lý)*
+*(Sau khi cài đặt thành công, hãy truy cập `/admin` trên Worker của bạn để phê duyệt thiết bị)*
