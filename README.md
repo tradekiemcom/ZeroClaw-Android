@@ -25,9 +25,10 @@ chmod +x install.sh && ./install.sh
 
 ## 🏢 Hệ Sinh Thái Doanh Nghiệp AI (Corporate OS)
 ZeroClaw không chỉ là tool kỹ thuật, nó là giải pháp cho bài toán kinh doanh:
-- 💡 **[Tầm nhìn Hệ sinh thái Doanh nghiệp](docs/HE_SINH_THAI_DOAN_NGHIEP.md)**: Trading, Content, Sales.
-- 📋 **[Thư viện Flow mẫu cho nhân sự AI](docs/FLOWS_MAU_DOANH_NGHIEP.md)**: Copy-paste cấu hình Agent.
-- 🏬 **[Mô hình Công ty "A.I Do Anything"](docs/MO_HINH_CONG_TY_AI.md)**: Cách tổ chức Agent theo phòng ban.
+- 👑 **[THE FULL AI CORPORATE BLUEPRINT (v10.0)](docs/BLUEPRINT_CORPORATE/99_HUONG_DAN_TRIEN_KHAI_FULL.md)**: Hướng dẫn A-Z xây dựng công ty AI 5 phòng ban.
+- 💡 [Tầm nhìn Hệ sinh thái Doanh nghiệp](docs/HE_SINH_THAI_DOAN_NGHIEP.md): Trading, Content, Sales.
+- 📋 [Thư viện Flow mẫu cho nhân sự AI](docs/FLOWS_MAU_DOAN_NGHIEP.md): Copy-paste cấu hình Agent.
+- 🏬 [Mô hình Agent nội bộ (Internal RPC)](docs/MO_HINH_CONG_TY_AI.md): Cách Agent kết nối không dùng Telegram.
 
 ## 📙 Tài liệu kỹ thuật
 - 👉 **[Hướng dẫn sử dụng Dashboard v8.2](docs/HUONG_DAN_SU_DUNG.md)**
