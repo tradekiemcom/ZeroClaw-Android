@@ -1,14 +1,13 @@
-# 🌀 ZeroClaw-Android: Omni-Agent Terminal
+# 🌀 ZeroClaw-Android: Omni-Agent Dashboard
 
-Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw)** chuyên biệt để biến thiết bị **Android (Note 10+/TV Box)** thành một Siêu Trợ Lý Đa Năng (Omni-Agent) có khả năng tự quản lý giao dịch, marketing và R&D.
+Dự án cài đặt **[ZeroClaw Core](https://github.com/zeroclaw-labs/zeroclaw)** chuyên biệt để biến thiết bị **Android (Note 10+/TV Box)** thành một Siêu Trợ Lý Đa Năng. Toàn bộ việc quản lý được thực hiện trực quan thông qua Giao diện Web (GUI).
 
 ---
 
 ## 🌟 Chức Năng Cốt Lõi
-- Cung cấp kịch bản cài đặt tinh gọn cho môi trường **Termux**.
-- Tích hợp công nghệ **Omni-Agent v15.0**: Một Agent duy nhất sở hữu hàng chục kỹ năng chuyên biệt.
-- Cơ chế **Model-Routing**: Tự động chuyển đổi Model LLM (Claude, Llama, Gemini) phù hợp cho từng tác vụ.
-- **Admin Dashboard**: Quản lý thiết bị trực quan qua giao diện Web Cyberpunk.
+- **Dashboard-First**: Quản lý Skill, Tool và Task 100% qua trình duyệt.
+- **Omni-Agent v16.1**: Một Agent duy nhất xử lý đa tác vụ (Trading, News, Planning).
+- **Core Automation**: Tích hợp sẵn các mẫu kỹ năng phân tích và lấy tin tức thực chiến.
 
 ## 🚀 Cài Đặt Nhanh (trên thiết bị Android > Termux)
 ```bash
@@ -18,15 +17,11 @@ cd ZeroClaw-Android
 chmod +x install.sh && ./install.sh
 ```
 
-## 🎒 Cẩm Nang Vận Hành Omni-Agent (v15.0)
-Hệ thống tài liệu **"Siêu Trợ Lý"** tập trung vào hiệu suất và sự tinh gọn:
-- 🌀 **[OMNI-AGENT MASTER](docs/OMNI_AGENT_V15/01_OMNI_AGENT_MASTER.md)**: Hướng dẫn thiết lập bộ não cốt lõi.
-- 🎒 **[THE SKILL VAULT](docs/OMNI_AGENT_V15/02_THE_SKILL_VAULT.md)**: Kho kỹ năng Trading, Marketing, R&D và Tài chính.
-- 🧠 **[ADVANCED MODEL ROUTING](docs/OMNI_AGENT_V15/03_ADVANCED_MODEL_ROUTING.md)**: Cách đổi Model AI theo từng nhiệm vụ.
+## 🖥️ Hướng Dẫn Vận Hành Qua Dashboard (GUI)
+Bộ tài liệu kỹ thuật tập trung vào việc cấu hình trực quan:
+- 🛠️ **[GUI SKILL & TOOL MANAGEMENT](docs/OMNI_AGENT_V15/01_GUI_SKILL_TOOL_GUIDE.md)**: Cách tạo Công cụ và Kỹ năng qua Web.
+- 🎒 **[REAL-WORLD SKILL CATALOG](docs/OMNI_AGENT_V15/02_DANH_MUC_SKILL_THUC_CHIEN.md)**: Kho mã mẫu (Analysis, News, Planner) để Copy-Paste.
+- ⏰ **[AUTOMATED TASK (CRON)](docs/OMNI_AGENT_V15/03_QUAN_LY_TASK_TU_DONG.md)**: Cách lập lịch cho Agent tự động làm việc 24/7.
+- 🧠 **[ADVANCED MODEL ROUTING](docs/OMNI_AGENT_V15/03_ADVANCED_MODEL_ROUTING.md)**: Kỹ thuật đổi Model AI cho từng kỹ năng.
 
-## 📙 Tài liệu kỹ thuật bổ trợ
-- 👉 **[Hướng dẫn sử dụng Dashboard v8.2](docs/HUONG_DAN_SU_DUNG.md)**
-- 👉 **[Cách thiết lập OTA Server (Worker & Dashboard)](docs/HUONG_DAN_TAO_OTA_WORKER.md)**
-
----
-*(Dự án được tối ưu hóa cho Note 10+ để đạt hiệu suất cao nhất với độ trễ thấp nhất).*
+*(Dự án đã lược bỏ hoàn toàn các mô hình quản lý doanh nghiệp phức tạp để tập trung vào hiệu suất tự động hóa thuần túy).*
