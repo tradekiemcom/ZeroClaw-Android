@@ -63,14 +63,18 @@ echo -e "  - RAM: ${GREEN}${RAM_TOTAL}MB${NC} (Còn trống: ${YELLOW}${RAM_FREE
 echo -e "  - Lưu trữ: ${GREEN}$STORAGE_TOTAL${NC} (Còn trống: ${YELLOW}$STORAGE_FREE${NC})"
 echo -e "${BLUE}--------------------------------------------------${NC}"
 
-# 6. Radar Quét & Dọn dẹp Port (Bản v17.6 - Deep Purgatory)
-echo -e "${YELLOW}[Radar] Đang thanh trừng dịch vụ cũ & dọn Port...${NC}"
+# 6. Radar Quét & Dọn dẹp Port (Bản v17.7 - Nuclear Mode)
+echo -e "${YELLOW}[Radar] Đang thanh trừng triệt để tiến trình cũ...${NC}"
 
-# Hủy đăng ký dịch vụ để tránh Termux-Services tự ý khởi động lại sau khi cài binary
+# Hủy đăng ký dịch vụ
 if command -v sv-disable >/dev/null 2>&1; then
     sv-disable zeroclaw 2>/dev/null || true
 fi
 rm -rf "$PREFIX/var/service/zeroclaw" 2>/dev/null || true
+
+# Kill sạch theo tên (Nuclear Strike)
+killall -9 zeroclaw 2>/dev/null || true
+killall -9 cloudflared 2>/dev/null || true
 
 for PORT in 42617 5555 8080 22; do
     OCCUPANT=$(lsof -nP -ti:$PORT 2>/dev/null | head -n 1)

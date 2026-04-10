@@ -25,14 +25,24 @@ while true; do
     echo -e "\n\033[36mBạn muốn thực hiện hành động nào?\033[0m"
     echo -e "  1. [DỌN DẸP] Quét rác, Giải phóng Port & RAM (Khuyên dùng)"
     echo -e "  2. [CÀI ĐẶT] Bắt đầu cài đặt ngay"
-    echo -e "  3. [THOÁT] Dừng lại"
-    read -p "Lựa chọn (1/2/3): " choice
+    echo -e "  3. [NUCLEAR] Xóa sạch toàn bộ cấu hình cũ & Cài mới"
+    echo -e "  4. [THOÁT] Dừng lại"
+    read -p "Lựa chọn (1/2/3/4): " choice
     if [[ "$choice" == "1" ]]; then
         bash "$SCRIPTS_DIR/00-deep-clean.sh"
         echo -e "\n--- Đang đánh giá lại hệ thống sau dọn dẹp ---\n"
         sleep 2
         continue
     elif [[ "$choice" == "2" ]]; then
+        break
+    elif [[ "$choice" == "3" ]]; then
+        echo -e "\n\033[31m[NUCLEAR] Đang tiến hành xóa sạch dấu vết cũ...\033[0m"
+        rm -rf ~/.zeroclaw 2>/dev/null || true
+        if command -v sv-disable >/dev/null 2>&1; then
+            sv-disable zeroclaw 2>/dev/null || true
+        fi
+        rm -rf $PREFIX/var/service/zeroclaw 2>/dev/null || true
+        echo -e "\033[32m[DONE] Đã dọn sạch. Bắt đầu cài mới.\033[0m"
         break
     else
         echo -e "\033[33mHủy bỏ quá trình cài đặt.\033[0m"
@@ -41,10 +51,10 @@ while true; do
 done
 
 # ==============================================================================
-# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v17.1
+# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v17.7
 # ==============================================================================
 
-echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v17.1...\033[0m\n"
+echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v17.7...\033[0m\n"
 
 echo -e "\n\033[32m[1/4] Cài đặt Dependencies (curl, openssl, adb...)\033[0m"
 bash "$SCRIPTS_DIR/02-install-deps.sh"
