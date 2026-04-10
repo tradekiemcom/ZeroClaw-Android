@@ -38,18 +38,8 @@ case "$ARCH" in
         ;;
 esac
 
-DOWNLOAD_URL="https://github.com/zeroclaw-labs/zeroclaw/releases/download/${LATEST_VERSION}/zeroclaw-${BINARY_TARGET}.tar.gz"
-TAR_FILE="$TMP_DIR/zeroclaw-android.tar.gz"
-
-echo "[Thông tin] Đang kiểm tra Binary cho kiến trúc $ARCH..."
-
-# Thử tải bản Android chính chủ trước
-if curl -L -f "$DOWNLOAD_URL" -o "$TAR_FILE" 2>/dev/null; then
-    COMPILATION_REQUIRED=false
-else
-    echo -e "\033[33m[Thông báo] Không tìm thấy Binary Android build sẵn. Bắt đầu [Biên dịch Native]...\033[0m"
-    COMPILATION_REQUIRED=true
-fi
+echo "[Thông tin] Chế độ v17.8: Bắt đầu [Biên dịch Native] từ mã nguồn để loại bỏ xung đột..."
+COMPILATION_REQUIRED=true
 
 if [ "$COMPILATION_REQUIRED" = "true" ]; then
     echo "[Thông tin] Thiết lập môi trường biên dịch (Fix Linker)..."
@@ -77,12 +67,6 @@ if [ "$COMPILATION_REQUIRED" = "true" ]; then
         echo -e "\033[31m[LỖI] Biên dịch thất bại. Hãy đảm bảo máy có ít nhất 1.5GB trống.\033[0m"
         exit 1
     fi
-else
-    echo "[Thông tin] Giải nén và cấu hình..."
-    cd "$TMP_DIR"
-    tar -xzf "$TAR_FILE"
-    mv zeroclaw "$BIN_DIR/zeroclaw"
-    chmod +x "$BIN_DIR/zeroclaw"
 fi
 
 rm -f "$TAR_FILE"
