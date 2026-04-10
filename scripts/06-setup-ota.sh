@@ -14,7 +14,8 @@ else
     echo -e "\033[33m[Warning] Không chạy trên Termux gốc, bỏ qua cài pkg phụ trợ.\033[0m"
 fi
 
-mkdir -p ~/.zeroclaw
+mkdir -p ~/.zeroclaw/skills
+mkdir -p ~/.zeroclaw/tools
 mkdir -p ~/.config/zeroclaw
 mkdir -p ~/.termux/boot/
 
@@ -78,7 +79,7 @@ rm -f ~/.zeroclaw/ota_sync.sh
 cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 #!/usr/bin/env bash
 # ============================================================================
-# ZERO-CLAW AUTONOMOUS OTA DAEMON (v8.0)
+# ZERO-CLAW AUTONOMOUS OTA DAEMON (v16.4)
 # ============================================================================
 
 # 1. Môi trường & Version
@@ -95,7 +96,7 @@ DEVICE_ID="$($USR_BIN/getprop ro.product.model 2>/dev/null | tr -d ' ')-$($USR_B
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 DEFAULT_TOKEN="TradeKiemCom123@!"
 
-echo "[$(date)] OTA Daemon v8.0 started..."
+echo "[$(date)] OTA Daemon v16.4 started..."
 
 while true; do
     # Nạp Token
@@ -108,7 +109,7 @@ while true; do
         status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
         
         if [ "$status" = "pending_approval" ]; then
-            echo "[WAIT] Thiết bị đang chờ duyệt trên Server..."
+            echo "[WAIT] Thiết bị đang chờ duyệt trên Server quản trị..."
         elif [ "$status" = "active" ]; then
             # A. KIỂM TRA CẬP NHẬT PHẦN MỀM (Self-Update)
             remote_ver=$(echo "$raw_data" | $USR_BIN/jq -r '.version' 2>/dev/null)
@@ -162,4 +163,4 @@ bash ~/.zeroclaw/ota_sync.sh >> ~/.zeroclaw/ota_boot.log 2>&1
 EOF
 chmod +x ~/.termux/boot/start_ota.sh
 
-echo -e "\033[32m[Thông tin] Đã kích hoạt Service Sync OTA thành công.\033[0m"
+echo -e "\033[32m[Thông tin] Đã kích hoạt Service Sync OTA (Omni-Agent v16.4) thành công.\033[0m"

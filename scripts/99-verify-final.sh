@@ -50,7 +50,7 @@ fi
 echo -e "${BLUE}--------------------------------------------------${NC}"
 echo -e "${GREEN}CHÚC MỪNG! HỆ THỐNG ĐÃ SẴN SÀNG HOẠT ĐỘNG.${NC}"
 echo -e "${BLUE}--------------------------------------------------${NC}"
-echo -e "Các lệnh phổ biến anh có thể dùng:"
+echo -e "Các lệnh phổ biến bạn có thể dùng:"
 echo -e "  1. ${YELLOW}zeroclaw gateway${NC}    - Chạy thủ công nếu dịch vụ dừng"
 echo -e "  2. ${YELLOW}sv status zeroclaw${NC} - Kiểm tra tình trạng chạy ngầm"
 echo -e "  3. ${YELLOW}sv restart zeroclaw${NC} - Khởi động lại khi đổi cấu hình"

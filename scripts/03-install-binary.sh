@@ -66,7 +66,7 @@ if [ "$COMPILATION_REQUIRED" = "true" ]; then
     git clone https://github.com/zeroclaw-labs/zeroclaw zeroclaw-src --depth 1
     cd zeroclaw-src
     
-    echo "[1/2] Đang biên dịch ZeroClaw (Dành riêng cho chip của anh)..."
+    echo "[1/2] Đang biên dịch ZeroClaw (Dành riêng cho chip của bạn)..."
     # Sử dụng profile release-small để giảm kích thước và j1 để tiết kiệm RAM
     cargo build --profile release-small -j 1
     

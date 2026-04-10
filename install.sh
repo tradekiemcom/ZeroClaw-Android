@@ -22,7 +22,7 @@ chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
 while true; do
     bash "$SCRIPTS_DIR/01-sys-diagnostics.sh"
     
-    echo -e "\n\033[36mAnh muốn thực hiện hành động nào?\033[0m"
+    echo -e "\n\033[36mBạn muốn thực hiện hành động nào?\033[0m"
     echo -e "  1. [DỌN DẸP] Quét rác, Giải phóng Port & RAM (Khuyên dùng)"
     echo -e "  2. [CÀI ĐẶT] Bắt đầu cài đặt ngay"
     echo -e "  3. [THOÁT] Dừng lại"
@@ -41,10 +41,10 @@ while true; do
 done
 
 # ==============================================================================
-# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v7.3
+# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v16.4
 # ==============================================================================
 
-echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v7.3...\033[0m\n"
+echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v16.4...\033[0m\n"
 
 echo -e "\n\033[32m[1/4] Cài đặt Dependencies (curl, openssl, adb...)\033[0m"
 bash "$SCRIPTS_DIR/02-install-deps.sh"
@@ -58,9 +58,9 @@ bash "$SCRIPTS_DIR/06-setup-ota.sh"
 echo -e "\n\033[32m[4/4] Kiểm tra chéo toàn bộ hệ thống...\033[0m"
 bash "$SCRIPTS_DIR/99-verify-final.sh"
 
-echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - HÃY TRẢI NGHIỆM ZEROCLAW v7.3!\033[0m"
+echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - HÃY TRẢI NGHIỆM ZEROCLAW v16.4!\033[0m"
 
 # Tự động kích hoạt OTA Daemon v8.0 chạy ngầm
 echo -e "\n\033[36m[6/6] Kích hoạt tiến trình Tự động Đồng bộ (OTA Daemon)...\033[0m"
 nohup bash ~/.zeroclaw/ota_sync.sh > ~/.zeroclaw/ota_daemon.log 2>&1 &
-echo -e "Dịch vụ đồng bộ đang chạy ngầm. Hãy chờ Sếp duyệt trên Server để kích hoạt cấu hình."
+echo -e "Dịch vụ đồng bộ đang chạy ngầm. Hãy chờ để kích hoạt cấu hình từ Server quản trị."
