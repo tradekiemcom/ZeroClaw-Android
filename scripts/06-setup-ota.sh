@@ -129,7 +129,8 @@ while true; do
                     chmod +x "$USR_BIN/zeroclaw"
                     SOFTWARE_VERSION="$remote_ver"
                     echo "[OK] Đã nâng cấp lên version $remote_ver."
-                    sv restart zeroclaw 2>/dev/null || true
+                    # Chỉ Restart nếu dịch vụ đang chạy (Tránh chiếm Port khi đang Onboard)
+                    $USR_BIN/sv status zeroclaw 2>/dev/null | grep -q "^run:" && $USR_BIN/sv restart zeroclaw 2>/dev/null || echo "[SKIP] Dịch vụ chưa bật, bỏ qua Restart."
                 fi
             fi
 
@@ -140,7 +141,8 @@ while true; do
                 if [ $? -eq 0 ] && [ -s ~/.config/zeroclaw/config.toml.new ]; then
                     mv ~/.config/zeroclaw/config.toml.new ~/.config/zeroclaw/config.toml
                     echo "[SYNC] Đã đồng bộ cấu hình mới."
-                    sv restart zeroclaw 2>/dev/null || true
+                    # Chỉ Restart nếu dịch vụ đang chạy (Tránh chiếm Port khi đang Onboard)
+                    $USR_BIN/sv status zeroclaw 2>/dev/null | grep -q "^run:" && $USR_BIN/sv restart zeroclaw 2>/dev/null || echo "[SKIP] Dịch vụ chưa bật, bỏ qua Restart."
                 fi
             fi
 

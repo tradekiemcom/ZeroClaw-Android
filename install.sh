@@ -58,9 +58,6 @@ bash "$SCRIPTS_DIR/06-setup-ota.sh"
 echo -e "\n\033[32m[4/4] Kiểm tra chéo toàn bộ hệ thống...\033[0m"
 bash "$SCRIPTS_DIR/99-verify-final.sh"
 
-echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.1!\033[0m"
-
-# Tự động kích hoạt OTA Daemon v8.0 chạy ngầm
-echo -e "\n\033[36m[6/6] Kích hoạt tiến trình Tự động Đồng bộ (OTA Daemon)...\033[0m"
-nohup bash ~/.zeroclaw/ota_sync.sh > ~/.zeroclaw/ota_daemon.log 2>&1 &
-echo -e "Dịch vụ đồng bộ đang chạy ngầm. Hãy chờ để kích hoạt cấu hình từ Server quản trị."
+echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.4!\033[0m"
+# (Vô hiệu hóa tự động kích hoạt OTA ở bản v17.4 để đảm bảo im lặng tuyệt đối)
+echo -e "\n\033[36mHệ thống đã sẵn sàng. Hãy thực hiện theo 6 Bước Hướng dẫn ở trên.\033[0m"

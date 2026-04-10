@@ -63,22 +63,19 @@ echo -e "  - RAM: ${GREEN}${RAM_TOTAL}MB${NC} (Còn trống: ${YELLOW}${RAM_FREE
 echo -e "  - Lưu trữ: ${GREEN}$STORAGE_TOTAL${NC} (Còn trống: ${YELLOW}$STORAGE_FREE${NC})"
 echo -e "${BLUE}--------------------------------------------------${NC}"
 
-# 6. Radar Quét Port Conflict (Tối ưu hóa & Dọn dẹp)
-echo -e "${YELLOW}[Radar] Đang quét xung đột cổng (vui lòng chờ)...${NC}"
+# 6. Radar Quét & Dọn dẹp Port (Bản v17.4 - Thiết quân luật)
+echo -e "${YELLOW}[Radar] Đang quét và dọn sạch Port xung đột...${NC}"
 for PORT in 42617 5555 8080 22; do
     OCCUPANT=$(lsof -nP -ti:$PORT 2>/dev/null | head -n 1)
     if [ -n "$OCCUPANT" ]; then
         PROC_NAME=$(ps -p "$OCCUPANT" -o comm= 2>/dev/null || echo "Unknown")
         echo -e "  - Port $PORT : ${RED}BỊ CHIẾM${NC} bởi [$PROC_NAME] (PID: $OCCUPANT)"
         
-        # Nếu là Port Gateway, hỏi người dùng có dọn dẹp không
-        if [ "$PORT" = "42617" ]; then
-            echo -e "${YELLOW}    => Bạn có muốn dọn dẹp tiến trình này để giải phóng cổng không? (y/n): ${NC}"
-            read -r choice
-            if [[ "$choice" =~ ^[Yy]$ ]]; then
-                kill -9 "$OCCUPANT" 2>/dev/null
-                echo -e "    ${GREEN}[OK] Đã giải phóng cổng $PORT.${NC}"
-            fi
+        # Tự động dọn dẹp không cần hỏi (Vô hiệu hóa toàn bộ để cài sạch)
+        if [ "$PORT" = "42617" ] || [ "$PORT" = "5555" ]; then
+            echo -e "    ${YELLOW}=> Đang tự động giải phóng cổng $PORT...${NC}"
+            kill -9 "$OCCUPANT" 2>/dev/null
+            echo -e "    ${GREEN}[XONG] Cổng $PORT đã sẵn sàng.${NC}"
         fi
     else
         echo -e "  - Port $PORT : ${GREEN}SẴN SÀNG${NC}"
