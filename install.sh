@@ -51,10 +51,10 @@ while true; do
 done
 
 # ==============================================================================
-# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v17.8
+# BẮT ĐẦU CÀI ĐẶT CHÍNH THỨC v17.9
 # ==============================================================================
 
-echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v17.8...\033[0m\n"
+echo -e "\n\033[32m[>>>] Đang khởi động tiến trình cài đặt ZeroClaw-Android v17.9...\033[0m\n"
 
 echo -e "\n\033[32m[1/4] Cài đặt Dependencies (curl, openssl, adb...)\033[0m"
 bash "$SCRIPTS_DIR/02-install-deps.sh"
@@ -69,6 +69,6 @@ echo -e "\n\033[33m[3/4] Bỏ qua Module OTA (Bản Zero-OTA Clean v17.5)...\033
 echo -e "\n\033[32m[4/4] Kiểm tra chéo toàn bộ hệ thống...\033[0m"
 bash "$SCRIPTS_DIR/99-verify-final.sh"
 
-echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.8 (NATIVE LOCAL)!\033[0m"
+echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.9 (NATIVE LOCAL)!\033[0m"
 # (Vô hiệu hóa toàn bộ nền tảng OTA để kiểm tra tình trạng Port)
 echo -e "\n\033[36mHệ thống đã sẵn sàng ở chế độ Local. Hãy làm theo hướng dẫn 5 bước.\033[0m"

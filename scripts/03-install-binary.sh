@@ -28,12 +28,12 @@ if [ "$COMPILATION_REQUIRED" = "true" ]; then
     git clone https://github.com/zeroclaw-labs/zeroclaw zeroclaw-src --depth 1
     cd zeroclaw-src
     
-    echo "[1/2] Đang biên dịch ZeroClaw (Dành riêng cho chip của bạn)..."
-    # Sử dụng profile release-small để giảm kích thước và j1 để tiết kiệm RAM
-    cargo build --profile release-small -j 1
+    echo "[1/2] Đang biên dịch ZeroClaw (Bản Release chuẩn)..."
+    # Sử dụng profile release bản chuẩn để đảm bảo tương thích
+    cargo build --release -j 1
     
-    if [ -f "target/release-small/zeroclaw" ]; then
-        cp target/release-small/zeroclaw "$BIN_DIR/zeroclaw"
+    if [ -f "target/release/zeroclaw" ]; then
+        cp target/release/zeroclaw "$BIN_DIR/zeroclaw"
         echo -e "\033[32m✅ Biên dịch Native thành công rực rỡ!\033[0m"
     else
         echo -e "\033[31m[LỖI] Biên dịch thất bại. Hãy đảm bảo máy có ít nhất 1.5GB trống.\033[0m"
