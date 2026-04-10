@@ -23,21 +23,26 @@ ANDROID_VER=$(getprop ro.build.version.release || echo "Unknown")
 ARCH=$(uname -m)
 KERNEL=$(uname -r)
 
-# 2. Pin (Dùng termux-api nếu có)
+# 2. Pin (Sử dụng timeout để tránh treo nếu API lỗi)
 if command -v termux-battery-status >/dev/null 2>&1; then
-    BAT_JSON=$(termux-battery-status)
-    BAT_PCT=$(echo "$BAT_JSON" | jq -r '.percentage')
-    BAT_STAT=$(echo "$BAT_JSON" | jq -r '.status')
+    BAT_JSON=$(timeout 2s termux-battery-status 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$BAT_JSON" ]; then
+        BAT_PCT=$(echo "$BAT_JSON" | jq -r '.percentage')
+        BAT_STAT=$(echo "$BAT_JSON" | jq -r '.status')
+    else
+        BAT_PCT="N/A"
+        BAT_STAT="Bỏ qua (Timeout)"
+    fi
 else
     # Fallback nếu chưa cài API app
     BAT_PCT=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo "N/A")
     BAT_STAT=$(cat /sys/class/power_supply/battery/status 2>/dev/null || echo "Unknown")
 fi
 
-# 3. CPU - Lấy thông tin số nhân và xung nhịp
+# 3. CPU - Dùng awk để tính toán (tránh treo do thiếu bc)
 CPU_CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo "1")
 CPU_FREQ_KHZ=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 2>/dev/null || echo "0")
-CPU_SPEED_GHZ=$(echo "scale=2; $CPU_FREQ_KHZ / 1000000" | bc 2>/dev/null || echo "N/A")
+CPU_SPEED_GHZ=$(awk "BEGIN {print $CPU_FREQ_KHZ / 1000000}" 2>/dev/null || echo "N/A")
 
 # 4. RAM (Tổng và Trống)
 RAM_TOTAL=$(free -m | grep Mem | awk '{print $2}')
@@ -49,7 +54,7 @@ STORAGE_TOTAL=$(echo $STORAGE_INFO | awk '{print $2}')
 STORAGE_FREE=$(echo $STORAGE_INFO | awk '{print $4}')
 STORAGE_FREE_MB=$(df -m /data | tail -1 | awk '{print $4}')
 
-# HIỂN THỊ THÔNG TIN DASHBOARD v7.3
+# HIỂN THỊ THÔNG TIN DASHBOARD v16.7
 echo -e "  - Thiết Bị: ${GREEN}$DEVICE_MODEL${NC} (Android $ANDROID_VER)"
 echo -e "  - Kiến Trúc: ${GREEN}$ARCH${NC} (Kernel: $KERNEL)"
 echo -e "  - CPU: ${GREEN}$CPU_CORES Cores @ ${CPU_SPEED_GHZ}GHz${NC}"
@@ -58,10 +63,11 @@ echo -e "  - RAM: ${GREEN}${RAM_TOTAL}MB${NC} (Còn trống: ${YELLOW}${RAM_FREE
 echo -e "  - Lưu trữ: ${GREEN}$STORAGE_TOTAL${NC} (Còn trống: ${YELLOW}$STORAGE_FREE${NC})"
 echo -e "${BLUE}--------------------------------------------------${NC}"
 
-# 6. Radar Quét Port Conflict
-echo -e "${YELLOW}[Radar] Quét xung đột cổng kết nối:${NC}"
+# 6. Radar Quét Port Conflict (Tối ưu hóa tốc độ)
+echo -e "${YELLOW}[Radar] Đang quét xung đột cổng (vui lòng chờ)...${NC}"
 for PORT in 42617 5555 8080 22; do
-    OCCUPANT=$(lsof -ti:$PORT 2>/dev/null | head -n 1)
+    # Dùng lsof -nP để tránh lookup DNS/Service name (nhanh hơn)
+    OCCUPANT=$(lsof -nP -ti:$PORT 2>/dev/null | head -n 1)
     if [ -n "$OCCUPANT" ]; then
         PROC_NAME=$(ps -p "$OCCUPANT" -o comm= 2>/dev/null || echo "Unknown")
         echo -e "  - Port $PORT : ${RED}BỊ CHIẾM${NC} bởi [$PROC_NAME] (PID: $OCCUPANT)"
@@ -69,7 +75,7 @@ for PORT in 42617 5555 8080 22; do
         echo -e "  - Port $PORT : ${GREEN}SẴN SÀNG${NC}"
     fi
 done
-echo -e "${BLUE}--------------------------------------------------${NC}"
+echo -e "${BLUE}==================================================${NC}"
 
 # Logic đánh giá
 STATUS="${GREEN}[SẴN SÀNG]${NC}"
