@@ -97,13 +97,13 @@ export default {
         return new Response(renderDashboard(devices, config), { headers: { 'Content-Type': 'text/html' } });
       }
 
-      // POST /admin/approve: Duyệt máy
-      if (url.pathname === '/admin/approve' && request.method === 'POST') {
+      // POST /admin/toggle-approve: Duyệt/Hủy duyệt máy
+      if (url.pathname === '/admin/toggle-approve' && request.method === 'POST') {
         const id = url.searchParams.get('id');
         const record = await env.KV_DEVICES.get(id, { type: "json" });
         if (record) {
-          record.status = "approved";
-          record.auto_update = true; // Mặc định bật khi duyệt
+          record.status = (record.status === "approved") ? "pending_approval" : "approved";
+          if (record.status === "approved") record.auto_update = true; // Bật mặc định khi duyệt mới
           await env.KV_DEVICES.put(id, JSON.stringify(record));
         }
         return new Response("OK");
@@ -192,42 +192,58 @@ function renderLogin() {
 function renderDashboard(devices, config) {
   const rows = devices.map(d => `
     <tr>
-      <td>${d.id}</td>
-      <td><span class="status ${d.status}">${d.status.toUpperCase()}</span></td>
+      <td><code>${d.id}</code></td>
+      <td><span class="badge ${d.status}">${d.status === 'approved' ? 'CONNECTED' : 'PENDING'}</span></td>
       <td>
         <label class="switch">
-          <input type="checkbox" ${d.auto_update ? 'checked' : ''} onclick="fetch('/admin/toggle-update?id=${d.id}&pass='+new URLSearchParams(window.location.search).get('pass'), {method:'POST'})">
+          <input type="checkbox" ${d.status === 'approved' ? 'checked' : ''} 
+            onclick="toggleAction('/admin/toggle-approve?id=${d.id}', 'Trạng thái kết nối đã thay đổi')">
           <span class="slider"></span>
         </label>
       </td>
-      <td>${new Date(d.lastSeen).toLocaleString()}</td>
       <td>
-        ${d.status === 'pending_approval' ? `<button onclick="approve('${d.id}')">APPROVE</button>` : ''}
+        <label class="switch">
+          <input type="checkbox" ${d.auto_update ? 'checked' : ''} 
+            onclick="toggleAction('/admin/toggle-update?id=${d.id}', 'Chế độ cập nhật đã thay đổi')">
+          <span class="slider blue"></span>
+        </label>
       </td>
+      <td><small>${new Date(d.lastSeen).toLocaleString()}</small></td>
     </tr>
   `).join('');
 
   return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v16.4</title><style>
-    body { background: #050505; color: #00ff41; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; }
-    h1 { color: #00ff41; text-shadow: 0 0 10px #00ff41; border-bottom: 2px solid #00ff41; padding-bottom: 20px; }
-    .card { background: #111; border: 1px solid #333; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th { text-align: left; border-bottom: 1px solid #333; padding: 15px; color: #888; }
+    :root { --neon: #00ff41; --bg: #050505; --card: #111; --pending: #ffab00; }
+    body { background: var(--bg); color: var(--neon); font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; }
+    h1 { text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--neon); border-bottom: 2px solid var(--neon); padding-bottom: 15px; }
+    .card { background: var(--card); border: 1px solid #333; padding: 25px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { text-align: left; border-bottom: 1px solid #333; padding: 15px; color: #888; text-transform: uppercase; font-size: 0.8rem; }
     td { padding: 15px; border-bottom: 1px solid #222; }
-    .status.approved { color: #00ff41; font-weight: bold; }
-    .status.pending_approval { color: #ffab00; font-style: italic; }
-    input[type=text] { background: #000; border: 1px solid #333; color: #00ff41; padding: 8px; border-radius: 4px; }
-    button { background: transparent; border: 1px solid #00ff41; color: #00ff41; padding: 5px 15px; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #00ff41; color: #000; }
+    .badge { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .badge.approved { background: rgba(0,255,65,0.1); color: var(--neon); border: 1px solid var(--neon); }
+    .badge.pending_approval { background: rgba(255,171,0,0.1); color: var(--pending); border: 1px solid var(--pending); }
+    input[type=text] { background: #000; border: 1px solid #333; color: var(--neon); padding: 10px; border-radius: 6px; outline: none; }
+    button { background: transparent; border: 1px solid var(--neon); color: var(--neon); padding: 8px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+    button:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
+    
     /* Switch design */
-    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
-    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: #00ff41; }
-    input:checked + .slider:before { transform: translateX(20px); }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: #fff; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--neon); }
+    input:checked + .slider.blue { background-color: #00d2ff; }
+    input:checked + .slider:before { transform: translateX(22px); }
+
+    /* Toast */
+    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: var(--neon); text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; bottom: 30px; left: 50%; transform: translateX(-50%); border: 1px solid var(--neon); }
+    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+    @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
   </style></head><body>
-    <h1>SYSTEM COMMAND CENTER : v16.4</h1>
+    <div id="toast">Thông báo</div>
+    <h1>OMNI-AGENT CONTROL CENTER : v16.4</h1>
     
     <div class="card">
       <h3>GLOBAL DISTRIBUTION CONFIG</h3>
@@ -239,21 +255,31 @@ function renderDashboard(devices, config) {
     <div class="card">
       <h3>CONNECTED DEVICES</h3>
       <table>
-        <thead><tr><th>DEVICE ID</th><th>STATUS</th><th>AUTO-UPDATE</th><th>LAST SEEN</th><th>ACTION</th></tr></thead>
+        <thead><tr><th>DEVICE ID</th><th>STATUS</th><th>ACCESS</th><th>AUTO-UPDATE</th><th>LAST SEEN</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
 
     <script>
       const pass = new URLSearchParams(window.location.search).get('pass');
-      async function approve(id) {
-        await fetch('/admin/approve?id='+id+'&pass='+pass, {method:'POST'});
-        location.reload();
+      
+      function showToast(msg) {
+        const x = document.getElementById("toast");
+        x.innerHTML = msg;
+        x.className = "show";
+        setTimeout(() => { x.className = x.className.replace("show", ""); }, 3000);
       }
+
+      async function toggleAction(path, successMsg) {
+        await fetch(path + '&pass=' + pass, {method:'POST'});
+        showToast(successMsg);
+        setTimeout(() => location.reload(), 1000);
+      }
+
       async function saveGlobal() {
         const data = { version: document.getElementById('gv').value, binary_url: document.getElementById('bu').value };
-        await fetch('/admin/save-global?pass='+pass, {method:'POST', body: JSON.stringify(data)});
-        alert('Global Config Saved');
+        await fetch('/admin/save-global?pass=' + pass, {method:'POST', body: JSON.stringify(data)});
+        showToast('Cấu hình toàn cầu đã được lưu');
       }
     </script>
   </body></html>`;
