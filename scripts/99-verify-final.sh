@@ -52,11 +52,11 @@ echo -e "     => THIẾT LẬP (Bắt buộc): Nhập API Key, Tên Agent, Chủ
 echo -e "  2. ${GREEN}zeroclaw gateway${NC}"
 echo -e "     => KÍCH HOẠT: Mở cổng kết nối & Cloudflare Tunnel."
 echo -e "  3. ${GREEN}zeroclaw daemon${NC}"
-echo -e "     => DỊCH VỤ NGẦM: Chạy toàn bộ hệ thống dưới dạng Service."
+echo -e "     => DỊCH VỤ NGẦM: Kích hoạt chạy ngầm & Khởi động cùng hệ thống."
 echo -e "  4. ${RED}[Dự phòng]${NC} Nếu Tunnel không tự khởi động, hãy chạy:"
 echo -e "     ${YELLOW}cloudflared tunnel run --token YOUR_TOKEN${NC}"
 echo -e "  5. ${GREEN}zeroclaw status${NC}"
 echo -e "     => KIỂM TRA: Xem trạng thái cấu hình & kết nối hệ thống."
 echo -e "${BLUE}==================================================${NC}"
 
-echo -e "\n✅ \033[32mCÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.1!\033[0m"
+echo -e "\n✅ \033[32mCÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.2!\033[0m"

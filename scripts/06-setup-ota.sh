@@ -158,8 +158,8 @@ EOF
 
 chmod +x ~/.zeroclaw/ota_sync.sh
 
-# Bật service
-sv-enable zeroclaw 2>/dev/null || true
+# Bật service (Vô hiệu hóa tự động ở bản v17.2 để tránh chiếm Port 42617 trước khi Onboard)
+# sv-enable zeroclaw 2>/dev/null || true
 
 # Gắn vào Termux boot
 cat << 'EOF' > ~/.termux/boot/start_ota.sh
