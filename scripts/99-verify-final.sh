@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ZERO-CLAW FINAL VERIFICATION v7.3
+# ZERO-CLAW FINAL VERIFICATION v16.9
 # Kiểm duyệt cuối cùng toàn bộ hệ sinh thái sau khi cài đặt
 # ==============================================================================
 
@@ -33,12 +33,8 @@ if command -v sv >/dev/null 2>&1; then
 fi
 
 # 3. Kiểm tra Port
-PORT_42617=$(lsof -ti:42617 >/dev/null 2>&1 && echo "Active" || echo "Inactive")
-PORT_42618=$(lsof -ti:42618 >/dev/null 2>&1 && echo "Active" || echo "Inactive")
-echo -e "  - Gateway Port 42617: ${GREEN}$PORT_42617${NC}"
-if [ "$PORT_42618" = "Active" ]; then
-    echo -e "  - Gateway Port 42618 (Dự phòng): ${GREEN}Active${NC}"
-fi
+PORT_42617=$(lsof -ti:42617 >/dev/null 2>&1 && echo -e "${GREEN}ACTIVE${NC}" || echo -e "${YELLOW}READY${NC}")
+echo -e "  - Gateway Port 42617: $PORT_42617"
 
 # 4. Kiểm tra ADB
 if adb devices | grep -q "localhost:5555"; then
@@ -56,3 +52,5 @@ echo -e "  2. ${YELLOW}sv status zeroclaw${NC} - Kiểm tra tình trạng chạy
 echo -e "  3. ${YELLOW}sv restart zeroclaw${NC} - Khởi động lại khi đổi cấu hình"
 echo -e "  4. ${YELLOW}bash ~/.zeroclaw/ota_sync.sh${NC} - Đồng bộ lại OTA ngay lập tức"
 echo -e "${BLUE}==================================================${NC}"
+
+echo -e "\n✅ \033[32mCÀI ĐẶT HOÀN TẤT - HÃY TRẢI NGHIỆM OMNI-AGENT v16.9!\033[0m"

@@ -120,6 +120,13 @@ export default {
         return new Response("OK");
       }
 
+      // POST /admin/delete-device: Xóa máy khỏi DB
+      if (url.pathname === '/admin/delete-device' && request.method === 'POST') {
+        const id = url.searchParams.get('id');
+        await env.KV_DEVICES.delete(id);
+        return new Response("OK");
+      }
+
       // POST /admin/save-global: Lưu cấu hình phiên bản
       if (url.pathname === '/admin/save-global' && request.method === 'POST') {
         const data = await request.json();
@@ -129,7 +136,7 @@ export default {
     }
 
     // =========================================================================
-    // 2. CLIENT SYNC API (v16.6 Gateway)
+    // 2. CLIENT SYNC API (v16.8 Gateway)
     // =========================================================================
     if (url.pathname === '/v1/sync') {
       const deviceId = url.searchParams.get('id');
@@ -150,9 +157,9 @@ export default {
         return new Response(JSON.stringify({ ota_status: "pending_approval" }));
       }
 
-      deviceRecord.cpu = url.searchParams.get('cpu') || "0";
-      deviceRecord.ram = url.searchParams.get('ram') || "0/0MB";
-      deviceRecord.disk = url.searchParams.get('disk') || "0/0";
+      deviceRecord.cpu = url.searchParams.get('cpu') || deviceRecord.cpu || "0";
+      deviceRecord.ram = url.searchParams.get('ram') || deviceRecord.ram || "0/0MB";
+      deviceRecord.disk = url.searchParams.get('disk') || deviceRecord.disk || "0/0";
       deviceRecord.lastSeen = Date.now();
       await env.KV_DEVICES.put(deviceId, JSON.stringify(deviceRecord));
 
@@ -174,7 +181,7 @@ export default {
       return new Response(JSON.stringify(responsePayload, null, 2), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    return new Response("ZeroClaw OTA Gateway v16.6 is active.");
+    return new Response("ZeroClaw OTA Gateway v16.8 is active.");
   },
 };
 
@@ -194,7 +201,10 @@ function renderLogin() {
 }
 
 function renderDashboard(devices, config) {
-  const rows = devices.map(d => `
+  const rows = devices.map(d => {
+    const lastSeenStr = d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'N/A';
+    const cpuVal = d.cpu || '0';
+    return `
     <tr>
       <td><code>${d.id}</code></td>
       <td><span class="badge ${d.status}">${d.status === 'approved' ? 'CONNECTED' : 'PENDING'}</span></td>
@@ -212,14 +222,17 @@ function renderDashboard(devices, config) {
           <span class="slider blue"></span>
         </label>
       </td>
-      <td><span style="color:${parseFloat(d.cpu) > 80 ? '#ff4d4d' : '#00ff41'}">${d.cpu}%</span></td>
-      <td><small>${d.ram}</small></td>
-      <td><small>${d.disk}</small></td>
-      <td><small>${new Date(d.lastSeen).toLocaleString()}</small></td>
+      <td><span style="color:${parseFloat(cpuVal) > 80 ? '#ff4d4d' : '#00ff41'}">${cpuVal}%</span></td>
+      <td><small>${d.ram || 'N/A'}</small></td>
+      <td><small>${d.disk || 'N/A'}</small></td>
+      <td><small>${lastSeenStr}</small></td>
+      <td>
+        <button class="btn-del" onclick="deleteDevice('${d.id}')" title="Xóa thiết bị">🗑️</button>
+      </td>
     </tr>
-  `).join('');
+  `}).join('');
 
-  return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v16.6</title>
+  return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v16.8</title>
 <style>
     :root { --neon: #00ff41; --bg: #050505; --card: #111; --pending: #ffab00; }
     body { background: var(--bg); color: var(--neon); font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; }
@@ -244,6 +257,10 @@ function renderDashboard(devices, config) {
     input:checked + .slider.blue { background-color: #00d2ff; }
     input:checked + .slider:before { transform: translateX(22px); }
 
+    /* Delete Button */
+    .btn-del { background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+    .btn-del:hover { background: #ff4d4d; color: #fff; box-shadow: 0 0 10px #ff4d4d; }
+
     /* Toast */
     #toast { visibility: hidden; min-width: 250px; background-color: #333; color: var(--neon); text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; bottom: 30px; left: 50%; transform: translateX(-50%); border: 1px solid var(--neon); }
     #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
@@ -251,7 +268,7 @@ function renderDashboard(devices, config) {
     @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
   </style></head><body>
     <div id="toast">Thông báo</div>
-    <h1>OMNI-AGENT CONTROL CENTER : v16.6</h1>
+    <h1>OMNI-AGENT CONTROL CENTER : v16.8</h1>
     
     <div class="card">
       <h3>GLOBAL DISTRIBUTION CONFIG</h3>
@@ -263,7 +280,7 @@ function renderDashboard(devices, config) {
     <div class="card">
       <h3>CONNECTED DEVICES</h3>
       <table>
-        <thead><tr><th>DEVICE ID</th><th>STATUS</th><th>ACCESS</th><th>AUTO</th><th>CPU</th><th>RAM</th><th>DISK</th><th>LAST SEEN</th></tr></thead>
+        <thead><tr><th>DEVICE ID</th><th>STATUS</th><th>ACCESS</th><th>AUTO</th><th>CPU</th><th>RAM</th><th>DISK</th><th>LAST SEEN</th><th>ACTION</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -281,6 +298,13 @@ function renderDashboard(devices, config) {
       async function toggleAction(path, successMsg) {
         await fetch(path + '&pass=' + pass, {method:'POST'});
         showToast(successMsg);
+        setTimeout(() => location.reload(), 1000);
+      }
+
+      async function deleteDevice(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa thiết bị ' + id + ' khỏi hệ thống?')) return;
+        await fetch('/admin/delete-device?id=' + id + '&pass=' + pass, {method:'POST'});
+        showToast('Thiết bị đã được xóa');
         setTimeout(() => location.reload(), 1000);
       }
 
