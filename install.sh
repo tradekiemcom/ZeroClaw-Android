@@ -52,12 +52,13 @@ bash "$SCRIPTS_DIR/02-install-deps.sh"
 echo -e "\n\033[32m[2/4] Tải và cấu hình lõi ZeroClaw (Native Optimization)...\033[0m"
 bash "$SCRIPTS_DIR/03-install-binary.sh"
 
-echo -e "\n\033[32m[3/4] Cài đặt trạm trung chuyển OTA, Service & Remote ADB...\033[0m"
-bash "$SCRIPTS_DIR/06-setup-ota.sh"
+# echo -e "\n\033[32m[3/4] Cài đặt trạm trung chuyển OTA, Service & Remote ADB...\033[0m"
+# bash "$SCRIPTS_DIR/06-setup-ota.sh"
+echo -e "\n\033[33m[3/4] Bỏ qua Module OTA (Bản Zero-OTA Clean v17.5)...\033[0m"
 
 echo -e "\n\033[32m[4/4] Kiểm tra chéo toàn bộ hệ thống...\033[0m"
 bash "$SCRIPTS_DIR/99-verify-final.sh"
 
-echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.4!\033[0m"
-# (Vô hiệu hóa tự động kích hoạt OTA ở bản v17.4 để đảm bảo im lặng tuyệt đối)
-echo -e "\n\033[36mHệ thống đã sẵn sàng. Hãy thực hiện theo 6 Bước Hướng dẫn ở trên.\033[0m"
+echo -e "\n\033[1;32m✅ CÀI ĐẶT HOÀN TẤT - TIẾN TỚI OMNI-AGENT v17.5 (BẢN GỐC)!\033[0m"
+# (Vô hiệu hóa toàn bộ nền tảng OTA để kiểm tra tình trạng Port)
+echo -e "\n\033[36mHệ thống đã sẵn sàng ở chế độ Local. Hãy làm theo hướng dẫn 5 bước.\033[0m"
