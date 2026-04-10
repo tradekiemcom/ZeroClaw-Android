@@ -5,7 +5,7 @@ compatibility_date = "2024-03-20"
 # QUAN TRỌNG: Phải bật tính năng nodejs_compat để Worker hỗ trợ thư viện mã hoá "node:crypto"
 compatibility_flags = ["nodejs_compat"]
 
-# Nếu anh cấu hình ota.tradekiem.com, bỏ các comment định tuyến sau:
+# Nếu người dùng cấu hình domain riêng, bỏ các comment định tuyến sau:
 # routes = [
 #   { pattern = "ota.tradekiem.com/*", custom_domain = true }
 # ]
@@ -17,7 +17,7 @@ TELEGRAM_IDS = "975318323, 7237066439"
 CF_AI_KEY = "cf_ai_token_xxxxx"
 OPENROUTER_KEY = "sk-or-v1-xxxxxxxxxxxxxxxxx"
 NVIDIA_NIM_KEY = "nvapi-xxxxxxxxxxxxxxxxx"
-TUNNEL_TOKEN = "eyJhIj... (Dán token Cloudflare của Sếp vào đây để auto-bind)"
+TUNNEL_TOKEN = "eyJhIj... (Dán token Cloudflare của Quản trị viên vào đây để auto-bind)"
 
 # Liên kết CSDL thiết bị
 [[kv_namespaces]]

@@ -75,7 +75,7 @@ export default {
     const adminPass = env.AdminPass || "TradeKiemCom888";
 
     // =========================================================================
-    // 1. ADMIN DASHBOARD & API (v8.2 Cyberpunk UI)
+    // 1. ADMIN DASHBOARD & API (v16.4 Global UI)
     // =========================================================================
     if (url.pathname.startsWith('/admin')) {
       // Logic Đăng nhập đơn giản qua URL hoặc Header
@@ -129,7 +129,7 @@ export default {
     }
 
     // =========================================================================
-    // 2. CLIENT SYNC API (v8.2 Respects Flags)
+    // 2. CLIENT SYNC API (v16.4 Gateway)
     // =========================================================================
     if (url.pathname === '/v1/sync') {
       const deviceId = url.searchParams.get('id');
@@ -163,14 +163,14 @@ export default {
         version: globalConfig.version,
         binary_url: deviceRecord.auto_update ? globalConfig.binary_url : "", // Chặn update nếu máy bị tắt Auto-Update
         encrypted_toml: await encryptAES_OpenSSL("auto_approve = true\n[server]\nport = 42617", env.ENCRYPTION_KEY || deviceToken),
-        hot_scripts: ["echo '[v8.2] Cấu hình đã được đồng bộ.'"],
+        hot_scripts: ["echo '[v16.4] Hệ thống đã sẵn sàng.'"],
         ota_status: "active"
       };
 
       return new Response(JSON.stringify(responsePayload, null, 2), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    return new Response("ZeroClaw OTA Node v8.2 is active.");
+    return new Response("ZeroClaw OTA Gateway v16.4 is active.");
   },
 };
 
@@ -207,7 +207,7 @@ function renderDashboard(devices, config) {
     </tr>
   `).join('');
 
-  return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v8.2</title><style>
+  return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v16.4</title><style>
     body { background: #050505; color: #00ff41; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; }
     h1 { color: #00ff41; text-shadow: 0 0 10px #00ff41; border-bottom: 2px solid #00ff41; padding-bottom: 20px; }
     .card { background: #111; border: 1px solid #333; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
@@ -227,7 +227,7 @@ function renderDashboard(devices, config) {
     input:checked + .slider { background-color: #00ff41; }
     input:checked + .slider:before { transform: translateX(20px); }
   </style></head><body>
-    <h1>SYSTEM COMMAND CENTER : v8.2</h1>
+    <h1>SYSTEM COMMAND CENTER : v16.4</h1>
     
     <div class="card">
       <h3>GLOBAL DISTRIBUTION CONFIG</h3>
