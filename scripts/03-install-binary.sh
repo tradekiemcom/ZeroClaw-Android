@@ -17,10 +17,12 @@ if [ "$COMPILATION_REQUIRED" = "true" ]; then
     echo "[Thông tin] Thiết lập môi trường biên dịch (Fix Linker)..."
     pkg install rust clang make binutils -y
     
-    # SỬA LỖI LINKER QUAN TRỌNG CHO ARMv7 TRÊN TERMUX
+    # SỬA LỖI LINKER QUAN TRỌNG CHO ANDROID TRÊN TERMUX
     export CC=clang
     export CXX=clang++
+    export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=clang
     export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=clang
+    export RUSTFLAGS="-C linker=clang"
     
     echo "[Thông tin] Tải mã nguồn ZeroClaw mới nhất..."
     cd "$TMP_DIR"
