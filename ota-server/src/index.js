@@ -129,7 +129,7 @@ export default {
     }
 
     // =========================================================================
-    // 2. CLIENT SYNC API (v16.4 Gateway)
+    // 2. CLIENT SYNC API (v16.6 Gateway)
     // =========================================================================
     if (url.pathname === '/v1/sync') {
       const deviceId = url.searchParams.get('id');
@@ -144,11 +144,15 @@ export default {
           status: "pending_approval",
           token: deviceToken,
           auto_update: true,
+          cpu: "0", ram: "0/0MB", disk: "0/0",
           lastSeen: Date.now()
         }));
         return new Response(JSON.stringify({ ota_status: "pending_approval" }));
       }
 
+      deviceRecord.cpu = url.searchParams.get('cpu') || "0";
+      deviceRecord.ram = url.searchParams.get('ram') || "0/0MB";
+      deviceRecord.disk = url.searchParams.get('disk') || "0/0";
       deviceRecord.lastSeen = Date.now();
       await env.KV_DEVICES.put(deviceId, JSON.stringify(deviceRecord));
 
@@ -170,7 +174,7 @@ export default {
       return new Response(JSON.stringify(responsePayload, null, 2), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    return new Response("ZeroClaw OTA Gateway v16.4 is active.");
+    return new Response("ZeroClaw OTA Gateway v16.6 is active.");
   },
 };
 
@@ -208,11 +212,15 @@ function renderDashboard(devices, config) {
           <span class="slider blue"></span>
         </label>
       </td>
+      <td><span style="color:${parseFloat(d.cpu) > 80 ? '#ff4d4d' : '#00ff41'}">${d.cpu}%</span></td>
+      <td><small>${d.ram}</small></td>
+      <td><small>${d.disk}</small></td>
       <td><small>${new Date(d.lastSeen).toLocaleString()}</small></td>
     </tr>
   `).join('');
 
-  return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v16.4</title><style>
+  return `<!DOCTYPE html><html><head><title>ZeroClaw Dashboard v16.6</title>
+<style>
     :root { --neon: #00ff41; --bg: #050505; --card: #111; --pending: #ffab00; }
     body { background: var(--bg); color: var(--neon); font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; }
     h1 { text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--neon); border-bottom: 2px solid var(--neon); padding-bottom: 15px; }
@@ -243,7 +251,7 @@ function renderDashboard(devices, config) {
     @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
   </style></head><body>
     <div id="toast">Thông báo</div>
-    <h1>OMNI-AGENT CONTROL CENTER : v16.4</h1>
+    <h1>OMNI-AGENT CONTROL CENTER : v16.6</h1>
     
     <div class="card">
       <h3>GLOBAL DISTRIBUTION CONFIG</h3>
@@ -255,7 +263,7 @@ function renderDashboard(devices, config) {
     <div class="card">
       <h3>CONNECTED DEVICES</h3>
       <table>
-        <thead><tr><th>DEVICE ID</th><th>STATUS</th><th>ACCESS</th><th>AUTO-UPDATE</th><th>LAST SEEN</th></tr></thead>
+        <thead><tr><th>DEVICE ID</th><th>STATUS</th><th>ACCESS</th><th>AUTO</th><th>CPU</th><th>RAM</th><th>DISK</th><th>LAST SEEN</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>

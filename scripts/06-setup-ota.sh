@@ -74,12 +74,12 @@ EOF
 chmod +x "$SVDIR/zeroclaw/log/run"
 mkdir -p ~/.zeroclaw/log
 
-# Tạo script đồng bộ OTA Daemon (v8.0)
+# Tạo script đồng bộ OTA Daemon (v16.6)
 rm -f ~/.zeroclaw/ota_sync.sh
 cat << 'EOF' > ~/.zeroclaw/ota_sync.sh
 #!/usr/bin/env bash
 # ============================================================================
-# ZERO-CLAW AUTONOMOUS OTA DAEMON (v16.4)
+# ZERO-CLAW AUTONOMOUS OTA DAEMON (v16.6)
 # ============================================================================
 
 # 1. Môi trường & Version
@@ -96,14 +96,20 @@ DEVICE_ID="$($USR_BIN/getprop ro.product.model 2>/dev/null | tr -d ' ')-$($USR_B
 PASSPHRASE_FILE="$HOME/.zeroclaw/.secret_pass"
 DEFAULT_TOKEN="TradeKiemCom123@!"
 
-echo "[$(date)] OTA Daemon v16.4 started..."
+echo "[$(date)] OTA Daemon v16.6 started..."
 
 while true; do
+    # Thu thập Telemetry (Native)
+    CPU_VAL=$(top -n 1 | grep "Id" | head -n 1 | awk '{print 100 - $8}' 2>/dev/null || echo "0")
+    RAM_VAL=$(free -m | grep Mem | awk '{print $3"/"$2"MB"}' 2>/dev/null || echo "0/0MB")
+    DISK_VAL=$(df -h /data | tail -n 1 | awk '{print $3"/"$2}' 2>/dev/null || echo "0/0")
+
     # Nạp Token
     [ -f "$PASSPHRASE_FILE" ] && DEVICE_TOKEN=$(cat "$PASSPHRASE_FILE") || DEVICE_TOKEN="$DEFAULT_TOKEN"
 
-    # Gửi yêu cầu Sync
-    raw_data=$($USR_BIN/curl -s -f --max-time 15 "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw")
+    # Gửi yêu cầu Sync kèm Telemetry
+    raw_data=$($USR_BIN/curl -s -f --max-time 15 \
+        "$OTA_URL?id=$DEVICE_ID&token=$DEVICE_TOKEN&core=zeroclaw&cpu=$CPU_VAL&ram=$RAM_VAL&disk=$DISK_VAL")
     
     if [ $? -eq 0 ]; then
         status=$(echo "$raw_data" | $USR_BIN/jq -r '.ota_status' 2>/dev/null)
@@ -145,8 +151,8 @@ while true; do
         echo "[ERROR] Không thể kết nối OTA Server. Thử lại sau..."
     fi
 
-    # Nghỉ 10 phút trước khi check lần tiếp theo
-    sleep 600
+    # Nghỉ 5 phút (300 giây) trước khi check lần tiếp theo
+    sleep 300
 done
 EOF
 
@@ -163,4 +169,4 @@ bash ~/.zeroclaw/ota_sync.sh >> ~/.zeroclaw/ota_boot.log 2>&1
 EOF
 chmod +x ~/.termux/boot/start_ota.sh
 
-echo -e "\033[32m[Thông tin] Đã kích hoạt Service Sync OTA (Omni-Agent v16.4) thành công.\033[0m"
+echo -e "\033[32m[Thông tin] Đã kích hoạt Service Sync OTA (Omni-Agent v16.6) thành công.\033[0m"
