@@ -48,11 +48,11 @@ pub fn build_router(state: SharedState) -> Router {
         .with_state(state)
 }
 
-/// Auth middleware kiểm tra Bearer token
+/// Auth middleware - kiểm tra Bearer token theo từng ApiClient
 async fn auth_middleware(
     State(state): State<SharedState>,
     headers: HeaderMap,
-    req: axum::http::Request<axum::body::Body>,
+    mut req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> impl IntoResponse {
     // /health không cần auth
@@ -66,15 +66,35 @@ async fn auth_middleware(
         .unwrap_or("");
 
     if !auth.starts_with("Bearer ") {
-        return (StatusCode::UNAUTHORIZED, "Missing Bearer token").into_response();
+        return (StatusCode::UNAUTHORIZED,
+            axum::Json(serde_json::json!({"success": false, "error": "Missing Bearer token"}))).into_response();
     }
 
     let token = &auth["Bearer ".len()..];
-    if token != state.config.api_key {
-        return (StatusCode::UNAUTHORIZED, "Invalid API key").into_response();
+    match state.authenticate_key(token).await {
+        Some(client) => {
+            if !client.enabled {
+                return (StatusCode::FORBIDDEN,
+                    axum::Json(serde_json::json!({"success": false, "error": "API key is disabled"}))).into_response();
+            }
+            // Ghi usage và inject source vào request extensions
+            let client_id = client.id.clone();
+            let source = client.source.clone();
+            // Tăng counter usage (fire & forget)
+            let db = state.db.clone();
+            let cid = client_id.clone();
+            tokio::spawn(async move {
+                let _ = crate::storage::increment_client_usage(&db, &cid).await;
+            });
+            // Inject client info vào request headers
+            req.extensions_mut().insert(source);
+            next.run(req).await
+        }
+        None => {
+            (StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"success": false, "error": "Invalid or disabled API key"}))).into_response()
+        }
     }
-
-    next.run(req).await
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────────

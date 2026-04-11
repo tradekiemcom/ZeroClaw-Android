@@ -5,21 +5,59 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TradeSource {
-    Telegram,
-    Api,
-    Web,
-    Zeroclaw,
-    Mt5,
+    Telegram,   // Lệnh từ Telegram Bot
+    Api,        // Lệnh từ REST API (generic)
+    Web,        // Lệnh từ Web Dashboard
+    Zeroclaw,   // Lệnh từ ZeroClaw AI Agent
+    Openclaw,   // Lệnh từ OpenClaw
+    Mt5,        // Lệnh từ MetaTrader 5 EA
+    Tradingview, // Lệnh từ TradingView Alert Webhook
+    Webhook,    // Lệnh từ Webhook (generic)
+    Cron,       // Lệnh từ Scheduler/Cron job
 }
 
 impl std::fmt::Display for TradeSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TradeSource::Telegram => write!(f, "TELEGRAM"),
-            TradeSource::Api => write!(f, "API"),
-            TradeSource::Web => write!(f, "WEB"),
-            TradeSource::Zeroclaw => write!(f, "ZEROCLAW"),
-            TradeSource::Mt5 => write!(f, "MT5"),
+            TradeSource::Telegram    => write!(f, "TELEGRAM"),
+            TradeSource::Api         => write!(f, "API"),
+            TradeSource::Web         => write!(f, "WEB"),
+            TradeSource::Zeroclaw    => write!(f, "ZEROCLAW"),
+            TradeSource::Openclaw    => write!(f, "OPENCLAW"),
+            TradeSource::Mt5         => write!(f, "MT5"),
+            TradeSource::Tradingview => write!(f, "TRADINGVIEW"),
+            TradeSource::Webhook     => write!(f, "WEBHOOK"),
+            TradeSource::Cron        => write!(f, "CRON"),
+        }
+    }
+}
+
+impl TradeSource {
+    pub fn from_str(s: &str) -> Self {
+        match s.to_uppercase().as_str() {
+            "TELEGRAM"    => Self::Telegram,
+            "WEB"         => Self::Web,
+            "ZEROCLAW"    => Self::Zeroclaw,
+            "OPENCLAW"    => Self::Openclaw,
+            "MT5"         => Self::Mt5,
+            "TRADINGVIEW" => Self::Tradingview,
+            "WEBHOOK"     => Self::Webhook,
+            "CRON"        => Self::Cron,
+            _             => Self::Api,
+        }
+    }
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            TradeSource::Telegram    => "💬",
+            TradeSource::Api         => "🔌",
+            TradeSource::Web         => "🌐",
+            TradeSource::Zeroclaw    => "🤖",
+            TradeSource::Openclaw    => "⚡",
+            TradeSource::Mt5         => "📊",
+            TradeSource::Tradingview => "📈",
+            TradeSource::Webhook     => "🪝",
+            TradeSource::Cron        => "⏰",
         }
     }
 }
