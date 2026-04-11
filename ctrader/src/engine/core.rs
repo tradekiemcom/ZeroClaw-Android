@@ -118,7 +118,19 @@ pub async fn dispatch(state: Arc<AppState>, req: OrderRequest) -> Result<Dispatc
             state.set_all_autotrade(false).await?;
             result.messages.push(format!("🔴 Đã đóng {} lệnh + tắt autotrade", closed));
             result.success_count = closed as usize;
-        }
+
+            // 📢 Notify group: CLOSE ALL event
+            if !state.config.telegram_notify_chat_id.is_empty() {
+                if let Some(bot) = &state.telegram_bot {
+                    let msg = format!(
+                        "🔴 *CLOSE ALL* \n\
+                        Source: {} \| Bot: `{}`\n\
+                        Đã đóng {} lệnh \+ tắt autotrade",
+                        req.source, req.bot_id, closed
+                    );
+                    let _ = crate::telegram::send_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
+                }
+            }
 
         // ── Close by Bot ─────────────────────────────────────────────
         OrderAction::Close => {
@@ -135,7 +147,18 @@ pub async fn dispatch(state: Arc<AppState>, req: OrderRequest) -> Result<Dispatc
             }
             result.messages.push(format!("✅ Đã đóng {} lệnh của bot `{}`", closed, req.bot_id));
             result.success_count = closed as usize;
-        }
+
+            // 📢 Notify group: CLOSE event
+            if !state.config.telegram_notify_chat_id.is_empty() && closed > 0 {
+                if let Some(bot) = &state.telegram_bot {
+                    let msg = format!(
+                        "🔴 *CLOSE* | Source: {} | Bot: `{}`\n\
+                        Đã đóng {} lệnh",
+                        req.source, req.bot_id, closed
+                    );
+                    let _ = crate::telegram::send_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
+                }
+            }
 
         // ── Open Trade ───────────────────────────────────────────────
         OrderAction::Open => {
@@ -174,6 +197,19 @@ pub async fn dispatch(state: Arc<AppState>, req: OrderRequest) -> Result<Dispatc
                             info!("✅ Opened | Account: {} | {} {} {}@{}",
                                 acc_id, pos.side, pos.symbol, pos.volume, pos.open_price);
                             state.add_position(pos.clone()).await?;
+
+                            // 📢 Notify group: OPEN event (mọi nguồn đều notify)
+                            if !state.config.telegram_notify_chat_id.is_empty() {
+                                if let Some(bot) = &state.telegram_bot {
+                                    let _ = crate::telegram::send_trade_event_to_group(
+                                        bot,
+                                        &state.config.telegram_notify_chat_id,
+                                        "OPEN",
+                                        &pos,
+                                    ).await;
+                                }
+                            }
+
                             result.positions.push(pos);
                         }
                         result.success_count += 1;

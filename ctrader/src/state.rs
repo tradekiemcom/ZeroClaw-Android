@@ -8,6 +8,7 @@ use chrono::Utc;
 use crate::config::Config;
 use crate::models::{Account, AccountType, Bot as TradingBot, Position, ApiClient};
 use crate::ctrader::CtraderClient;
+use crate::telegram::UserSession;
 
 /// Thống kê hệ thống cho lệnh /status
 #[derive(Debug, Default)]
@@ -42,6 +43,7 @@ pub struct AppState {
     pub bots: RwLock<HashMap<String, TradingBot>>,
     pub positions: RwLock<Vec<Position>>,
     pub api_clients: RwLock<HashMap<String, ApiClient>>, // key = api_key string
+    pub user_sessions: RwLock<HashMap<i64, UserSession>>, // key = telegram user_id
 }
 
 impl AppState {
@@ -78,7 +80,28 @@ impl AppState {
             bots,
             positions,
             api_clients,
+            user_sessions: RwLock::new(HashMap::new()),
         })
+    }
+
+    // ── User Session Management ───────────────────────────────────────────────
+
+    pub async fn get_user_session(&self, user_id: i64) -> UserSession {
+        let sessions = self.user_sessions.read().await;
+        sessions.get(&user_id)
+            .cloned()
+            .unwrap_or_else(|| {
+                let mut s = UserSession::new(user_id);
+                s
+            })
+    }
+
+    pub async fn set_user_session(&self, user_id: i64, session: UserSession) {
+        self.user_sessions.write().await.insert(user_id, session);
+    }
+
+    pub async fn reset_user_session(&self, user_id: i64) {
+        self.user_sessions.write().await.remove(&user_id);
     }
 
     pub fn is_admin(&self, user_id: i64) -> bool {
