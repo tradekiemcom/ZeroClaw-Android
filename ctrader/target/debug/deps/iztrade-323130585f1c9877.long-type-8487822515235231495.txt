@@ -1,1 +1,0 @@
-models::bot::Bot: teloxide::prelude::Requester
