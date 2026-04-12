@@ -1,363 +1,76 @@
-# iZtrader – Production System Specification (v2)
+# iZFx.Trade (cTrader Module)
 
----
+Đây là REST API Gateway kết nối trực tiếp với **cTrader OpenAPI**, cho phép giao dịch đa tài khoản, quản lý Bot và cấp giá (Price Feed) tự động hóa.
 
-## 1. Overview
+## 🎯 Tính năng
 
-**iZtrader** là Trading Execution Hub trung tâm:
+- **Quản lý Vị thế (Positions):** Đóng từng lệnh, đóng một phần (Scale out), trượt dừng lỗ.
+- **Lệnh chờ (Pending Orders):** Quản lý và hủy các lệnh chờ (Limit/Stop).
+- **Quản lý Bot:** Tắt/Bật bot, hỗ trợ Telegram Bot 2 tầng (Context-aware).
+- **Market Data Feed:** Cung cấp API cập nhật giá Real-time cho ZeroClaw Agent và các ứng dụng bên ngoài.
+- **Telegram Notification:** Đẩy tín hiệu (Open/Close/Modify/Error) về Telegram.
 
-* được viết bằng rush dựa trên ctrader open api 
-* Thay thế hoàn toàn cBot
-* Control toàn bộ hệ thống trading
-* Multi-account / Multi-bot / Multi-source
-* Điều khiển qua Telegram + API
-
----
-
-## 2. Core Objectives
-
-* Nhận lệnh từ nhiều nguồn (Telegram, Web, MT5, ZeroClaw, AI…)
-* Gắn định danh bot vào từng lệnh
-* Quản lý autotrade & bot theo account
-* Kiểm soát risk theo bot & account
-* Báo cáo realtime
-
----
-
-## 3. System Architecture
-
-External Systems → API Gateway → Core Engine → Broker (cTrader)
-↑
-Telegram
-
----
-
-## 4. Core Modules
-
-### 4.1 Account Manager
-
-```rust
-struct Account {
-  id: u64,
-  name: String,
-  connected: bool,
-  autotrade: bool,
-  daily_target_profit: f64,
-  daily_max_loss: f64
-}
-```
-
-👉 NEW:
-
-* Target PnL cấp độ account
-* Khi đạt target → disable autotrade
-
----
-
-### 4.2 Bot Manager
-
-Không giới hạn số lượng bot (không còn 9 cố định)
-
-```rust
-struct Bot {
-  id: String,
-  name: String,
-  enabled: bool,
-  symbol: String,
-  timeframe: String,
-  daily_target_profit: f64,
-  daily_max_loss: f64
-}
-```
-
----
-
-### 4.3 Source Manager
-
-Quản lý nguồn lệnh
-
-```rust
-enum Source {
-  TELEGRAM,
-  API,
-  WEB,
-  ZEROCLAW,
-  MT5
-}
-```
-
----
-
-### 4.4 Auth Manager
-
-Quản lý API key cho từng hệ thống
-
-```rust
-struct ApiClient {
-  name: String,
-  api_key: String,
-  allowed_sources: Vec<Source>
-}
-```
-
----
-
-### 4.5 Order Model (Chuẩn hóa toàn hệ)
-
-```json
-{
-  "request_id": "uuid",
-  "source": "telegram",
-  "account_scope": "all | single | list",
-  "account_ids": [123],
-  "bot_id": "gold_scalper",
-  "action": "OPEN | CLOSE | MODIFY",
-  "symbol": "XAUUSD",
-  "side": "buy",
-  "volume": 0.1,
-  "sl": 2300,
-  "tp": 2350
-}
-```
-
----
-
-### 4.6 Action System (Chuẩn hóa)
-
-```text
-OPEN
-CLOSE
-CLOSE_ALL
-MODIFY
-ENABLE_BOT
-DISABLE_BOT
-ENABLE_AUTOTRADE
-DISABLE_AUTOTRADE
-```
-
----
-
-### 4.7 Position Tracking
-
-```rust
-struct Position {
-  order_id: String,
-  account_id: u64,
-  bot_id: String,
-  source: String
-}
-```
-
----
-
-## 5. Telegram System
-
-### 5.1 Config
-
-```env
-TELEGRAM_BOT_TOKEN=xxxxx
-TELEGRAM_ADMIN_IDS=975318323
-TELEGRAM_NOTIFY_GROUP_ID=-100xxxx
-```
-
----
-
-### 5.2 Command System
-
-#### Autotrade
-
-* `/a` → bật autotrade
-* `/d` → tắt autotrade
-
----
-
-#### Bot Control (dynamic)
-
-* `/on <bot>`
-* `/off <bot>`
-
----
-
-#### Close
-
-* `/c` → đóng tất cả + tắt autotrade
-* `/c <bot>` → đóng theo bot
-
----
-
-#### Positions
-
-* `/p` → positions
-* `/o` → pending orders
-
----
-
-#### Reports
-
-* `/r` → account report
-* `/rp` → report theo bot
-
----
-
-#### Trade trực tiếp
+## 🛠 Cấu trúc thư mục
 
 ```
-/buy XAUUSD 0.1 gold_scalper sl=2300 tp=2350
-/sell BTCUSD 0.01 trend_bot
+ctrader/
+├── src/
+│   ├── main.rs         # Điểm vào, khởi chạy HTTP Server
+│   ├── api/            # REST API Routes (controllers)
+│   ├── ctrader/        # cTrader OpenAPI Client (Protobuf / TCP)
+│   ├── engine/         # Xử lý Logic (Dispatcher, Execution, State)
+│   ├── models/         # Các định nghĩa Model (Account, Bot, Position, PriceQuote)
+│   ├── storage/        # Sqlite3 + thao tác DB
+│   └── telegram/       # Bot Telegram (Teloxide) 2 lớp Menu
+└── Cargo.toml          # Rust dependencies
 ```
 
----
+## 📡 REST API Endpoints
 
-### 5.3 Event Notification
+### 1. Price Feed API (Public - Không yêu cầu Bearer token)
+Hệ thống sử dụng cơ chế cấp giá thời gian thực cho các Bot/Agent ngoài.
 
-Push về Telegram Group:
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET`  | `/api/prices` | Lấy bảng giá của tất cả các symbol phổ biến |
+| `GET`  | `/api/prices/{symbol}` | Lấy giá một mã cụ thể (Ví dụ: `XAUUSD`) |
 
-```text
-[OPEN]
-Account: 123
-Bot: gold_scalper
-Symbol: XAUUSD
-Volume: 0.1
+### 2. Giao dịch & Quản lý (Protected - Yêu cầu Bearer token)
+
+Gửi request với header: `Authorization: Bearer <API_KEY>`
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET`  | `/api/accounts` | Danh sách tài khoản cTrader được quản lý |
+| `GET`  | `/api/bots`     | Danh sách Bot giao dịch tự động |
+| `GET`  | `/api/positions`| Các vị thế đang mở và lệnh chờ |
+| `GET`  | `/api/report`   | Báo cáo tổng thể PnL và hệ thống |
+| `POST` | `/api/order`    | Thực hiện giao dịch (Mở/Đóng lệnh) |
+| `POST` | `/api/prices/update` | Cập nhật giá thủ công qua webhook |
+| `POST` | `/api/bots/{id}/enable` | Bật hoạt động Bot |
+| `POST` | `/api/bots/{id}/disable`| Tắt Bot |
+
+## ⚙️ Môi trường (.env)
+
+Hệ thống yêu cầu thiết lập file `.env` trước khi khởi chạy:
+```ini
+# Server
+PORT=8080
+DATABASE_URL=sqlite://data.db
+
+# cTrader Credentials
+CTRADER_CLIENT_ID=your_id
+CTRADER_SECRET=your_secret
+CTRADER_ACCOUNT=1234567
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+ADMIN_USER_ID=your_telegram_id
 ```
 
----
-
-## 6. API System
-
-### Auth
-
-```http
-Authorization: Bearer <API_KEY>
-```
-
----
-
-### Multi-account control
-
-```json
-"account_scope": "all"
-```
-
----
-
-## 7. Risk Engine
-
-### Bot level
-
-* daily profit target
-* daily max loss
-
-### Account level
-
-* tổng pnl
-* nếu vượt → disable toàn bộ
-
----
-
-## 8. Data Storage
-
-Tables:
-
-* accounts
-* bots
-* positions
-* orders
-* api_clients
-* requests
-
----
-
-## 9. Logging
-
-Log đầy đủ:
-
-* request
-* telegram command
-* trade execution
-* error
-
----
-
-## 10. Setup Guide
-
-### 10.1 Clone
+## 🚀 Khởi chạy
 
 ```bash
-git clone https://github.com/tradekiemcom/ZeroClaw-Android/ctrader
-cd ctrader
+cargo build --release
+cargo run --release
 ```
-
----
-
-### 10.2 Run
-
-```bash
-cargo run
-```
-
----
-
-### 10.3 Env config
-
-```env
-API_KEY=secret
-TELEGRAM_BOT_TOKEN=xxx
-```
-
----
-
-## 11. One-line Install (future)
-
-```bash
-curl -sL ctrader.tradekiem.com | bash
-```
-
----
-
-## 12. Deployment
-
-* Dev: Mac M1
-* Prod: Android Termux
-
----
-
-## 13. Principles
-
-* Không dùng cBot
-* Mọi lệnh phải có bot_id
-* Idempotency bắt buộc
-* Track full lifecycle
-
----
-
-## 14. Summary
-
-> iZtrader = Trading Brain + Execution Engine + Control System + API Gateway
-
----
-
-## 15. Price Feed API
-
-Hệ thống có cung cấp API giá `real-time` (Public, không yêu cầu Bearer auth) để cấp giá cho ZeroClaw Agent hoặc ứng dụng bên ngoài.
-
-**Endpoints:**
-- `GET /api/prices` -> Lấy tất cả giá (trả về JSON mảng `prices`).
-- `GET /api/prices/{symbol}` -> Lấy giá 1 symbol cụ thể (Vd: `/api/prices/XAUUSD`).
-- `POST /api/prices/update` -> Push giá từ webhook/cTrader (Cần Bearer token).
-
-**Cấu trúc dữ liệu trả về:**
-```json
-{
-  "success": true,
-  "symbol": "XAUUSD",
-  "bid": 3299.50,
-  "ask": 3300.50,
-  "mid": 3300.0,
-  "spread": 1.0,
-  "source": "ctrader",
-  "timestamp": "2026-04-12T12:00:00Z",
-  "age_secs": 3,
-  "stale": false
-}
-```
-Mặc định sẽ cấp các giá Mock cho 15 symbol phổ biến nếu chưa connect với OpenAPI. Khi có dữ liệu thật (tick data), source sẽ hiển thị `ctrader`.
