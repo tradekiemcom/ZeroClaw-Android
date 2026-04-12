@@ -33,8 +33,15 @@ impl<T: Serialize> ApiResponse<T> {
 
 /// Build router cho REST API
 pub fn build_router(state: SharedState) -> Router {
-    Router::new()
+    // Public routes - không cần auth
+    let public = Router::new()
         .route("/health", get(health))
+        .route("/api/prices", get(get_all_prices))
+        .route("/api/prices/:symbol", get(get_price_by_symbol))
+        .with_state(state.clone());
+
+    // Protected routes - cần Bearer token
+    let protected = Router::new()
         .route("/api/accounts", get(get_accounts))
         .route("/api/bots", get(get_bots))
         .route("/api/positions", get(get_positions))
@@ -44,8 +51,11 @@ pub fn build_router(state: SharedState) -> Router {
         .route("/api/autotrade/on", post(autotrade_on))
         .route("/api/autotrade/off", post(autotrade_off))
         .route("/api/report", get(get_report))
+        .route("/api/prices/update", post(update_price))
         .layer(axum::middleware::from_fn_with_state(state.clone(), auth_middleware))
-        .with_state(state)
+        .with_state(state);
+
+    public.merge(protected)
 }
 
 /// Auth middleware - kiểm tra Bearer token theo từng ApiClient
@@ -235,5 +245,72 @@ async fn get_report(State(state): State<SharedState>) -> impl IntoResponse {
         "bots": bots.values().collect::<Vec<_>>(),
         "open_positions": positions.len(),
         "timestamp": chrono::Utc::now().to_rfc3339(),
+    }))
+}
+
+// ── Price API ─────────────────────────────────────────────────────────────────
+
+/// GET /api/prices — Lấy tất cả giá (PUBLIC, không cần auth)
+async fn get_all_prices(State(state): State<SharedState>) -> impl IntoResponse {
+    let quotes = state.get_all_prices().await;
+    axum::Json(serde_json::json!({
+        "success": true,
+        "count": quotes.len(),
+        "prices": quotes,
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+    }))
+}
+
+/// GET /api/prices/:symbol — Lấy giá 1 symbol (PUBLIC, không cần auth)
+async fn get_price_by_symbol(
+    State(state): State<SharedState>,
+    Path(symbol): Path<String>,
+) -> impl IntoResponse {
+    match state.get_price(&symbol).await {
+        Some(quote) => (
+            StatusCode::OK,
+            axum::Json(serde_json::json!({
+                "success": true,
+                "symbol": quote.symbol,
+                "bid": quote.bid,
+                "ask": quote.ask,
+                "mid": quote.mid,
+                "spread": quote.spread,
+                "source": quote.source,
+                "timestamp": quote.timestamp.to_rfc3339(),
+                "age_secs": quote.age_secs(),
+                "stale": quote.is_stale(),
+            }))
+        ),
+        None => (
+            StatusCode::NOT_FOUND,
+            axum::Json(serde_json::json!({
+                "success": false,
+                "error": format!("Symbol '{}' not found", symbol.to_uppercase()),
+            }))
+        ),
+    }
+}
+
+#[derive(Deserialize)]
+struct PriceUpdateBody {
+    symbol: String,
+    bid: f64,
+    ask: f64,
+}
+
+/// POST /api/prices/update — Push giá từ bên ngoài (cần Bearer token)
+async fn update_price(
+    State(state): State<SharedState>,
+    Json(body): Json<PriceUpdateBody>,
+) -> impl IntoResponse {
+    use crate::models::PriceQuote;
+    let mut quote = PriceQuote::new(&body.symbol, body.bid, body.ask);
+    quote.source = "webhook".to_string();
+    let sym = quote.symbol.clone();
+    state.update_price(quote).await;
+    axum::Json(serde_json::json!({
+        "success": true,
+        "message": format!("Price updated for {}", sym),
     }))
 }

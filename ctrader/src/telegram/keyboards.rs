@@ -7,11 +7,16 @@ use crate::models::{Account, Bot};
 // ── Reply Keyboards (persistent bottom keyboard) ──────────────────────────────
 
 /// Bàn phím tầng 1 – App Scope (toàn bộ tài khoản)
-pub fn app_reply_keyboard() -> KeyboardMarkup {
+pub fn app_reply_keyboard(scope_badge: &str) -> KeyboardMarkup {
+    // Xóa '*' và '\' markdown để text trên button đẹp hơn
+    let clean_badge = scope_badge.replace('*', "").replace('\\', "");
     KeyboardMarkup::new(vec![
         vec![
+            KeyboardButton::new(clean_badge),
+        ],
+        vec![
             KeyboardButton::new("📊 Status"),
-            KeyboardButton::new("💼 Tài khoản"),
+            KeyboardButton::new("💼 Accounts"),
             KeyboardButton::new("🤖 Bots"),
             KeyboardButton::new("🔑 API Keys"),
         ],
@@ -22,20 +27,24 @@ pub fn app_reply_keyboard() -> KeyboardMarkup {
             KeyboardButton::new("📑 Report"),
         ],
         vec![
-            KeyboardButton::new("🆕 Thêm Bot"),
-            KeyboardButton::new("➕ Thêm Account"),
-            KeyboardButton::new("⚙️ Cài đặt"),
-            KeyboardButton::new("❓ Trợ giúp"),
+            KeyboardButton::new("🆕 Add Bot"),
+            KeyboardButton::new("➕ Add Account"),
+            KeyboardButton::new("⚙️ Settings"),
+            KeyboardButton::new("❓ Help"),
         ],
     ])
     .resize_keyboard(true)
 }
 
 /// Bàn phím tầng 2 – Account Scope (1 tài khoản cụ thể)
-pub fn account_reply_keyboard() -> KeyboardMarkup {
+pub fn account_reply_keyboard(scope_badge: &str) -> KeyboardMarkup {
+    let clean_badge = scope_badge.replace('*', "").replace('\\', "");
     KeyboardMarkup::new(vec![
         vec![
-            KeyboardButton::new("ℹ️ Thông tin"),
+            KeyboardButton::new(clean_badge),
+        ],
+        vec![
+            KeyboardButton::new("ℹ️ Info"),
             KeyboardButton::new("📊 Report"),
             KeyboardButton::new("📈 Positions"),
             KeyboardButton::new("⏳ Pending"),
@@ -47,9 +56,9 @@ pub fn account_reply_keyboard() -> KeyboardMarkup {
             KeyboardButton::new("⬅️ Top Menu"),
         ],
         vec![
-            KeyboardButton::new("🔴 Đóng Tất Cả"),
-            KeyboardButton::new("💰 Đóng Lời"),
-            KeyboardButton::new("📉 Đóng Lỗ"),
+            KeyboardButton::new("🔴 Close All"),
+            KeyboardButton::new("💰 Close Profit"),
+            KeyboardButton::new("📉 Close Loss"),
             KeyboardButton::new("🔄 Refresh"),
         ],
     ])
@@ -74,109 +83,134 @@ pub fn accounts_list_keyboard(accounts: &[Account]) -> InlineKeyboardMarkup {
 
     if accounts.is_empty() {
         rows.push(vec![
-            InlineKeyboardButton::callback("➕ Thêm tài khoản", "app:add_acc"),
+            InlineKeyboardButton::callback("➕ Add Account", "app:add_acc"),
         ]);
     }
 
     InlineKeyboardMarkup::new(rows)
 }
 
-/// Context keyboard cho Positions view (App scope — tất cả)
-pub fn positions_app_inline_keyboard() -> InlineKeyboardMarkup {
+// ── Cấu trúc Mới (Tier-1 & Tier-2) ─────────────────────────────────────────────
+
+// ── Pending Orders ──
+pub fn pending_inline_keyboard(acc_id: Option<i64>) -> InlineKeyboardMarkup {
+    let pfx = if acc_id.is_some() { "acc:pnd" } else { "app:pnd" };
     InlineKeyboardMarkup::new(vec![
         vec![
-            InlineKeyboardButton::callback("💰 Đóng Lời", "app:pos:cp"),
-            InlineKeyboardButton::callback("📉 Đóng Lỗ", "app:pos:cl"),
+            InlineKeyboardButton::callback("❌ Cancel Buy Limit", format!("{}:act:cbl", pfx)),
+            InlineKeyboardButton::callback("❌ Cancel Sell Limit", format!("{}:act:csl", pfx)),
         ],
         vec![
-            InlineKeyboardButton::callback("📈 Đóng Buy", "app:pos:cb"),
-            InlineKeyboardButton::callback("📉 Đóng Sell", "app:pos:cs"),
+            InlineKeyboardButton::callback("❌ Cancel Buy Stop", format!("{}:act:cbs", pfx)),
+            InlineKeyboardButton::callback("❌ Cancel Sell Stop", format!("{}:act:css", pfx)),
         ],
         vec![
-            InlineKeyboardButton::callback("🔴 ĐÓNG TẤT CẢ + Tắt Auto", "app:pos:ca"),
+            InlineKeyboardButton::callback("❌ Cancel Buy Stop Limit", format!("{}:act:cbsl", pfx)),
+            InlineKeyboardButton::callback("❌ Cancel Sell Stop Limit", format!("{}:act:cssl", pfx)),
         ],
         vec![
-            InlineKeyboardButton::callback("🔄 Refresh", "app:pos:ref"),
+            InlineKeyboardButton::callback("🔴 CANCEL ALL PENDING", format!("{}:act:ca", pfx)),
+        ],
+        vec![
+            InlineKeyboardButton::callback("🔄 Refresh", format!("{}:ref", pfx)),
         ],
     ])
 }
 
-/// Context keyboard cho Positions view (Account scope — 1 tài khoản)
-pub fn positions_account_inline_keyboard(acc_id: i64) -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![
-        vec![
-            InlineKeyboardButton::callback("💰 Đóng Lời", format!("acc:pos:cp:{}", acc_id)),
-            InlineKeyboardButton::callback("📉 Đóng Lỗ", format!("acc:pos:cl:{}", acc_id)),
-        ],
-        vec![
-            InlineKeyboardButton::callback("📈 Đóng Buy", format!("acc:pos:cb:{}", acc_id)),
-            InlineKeyboardButton::callback("📉 Đóng Sell", format!("acc:pos:cs:{}", acc_id)),
-        ],
-        vec![
-            InlineKeyboardButton::callback("🔴 ĐÓNG TẤT CẢ", format!("acc:pos:ca:{}", acc_id)),
-        ],
-        vec![
-            InlineKeyboardButton::callback("🟢 Auto ON", format!("acc:ao:{}", acc_id)),
-            InlineKeyboardButton::callback("🔄 Refresh", format!("acc:pos:ref:{}", acc_id)),
-        ],
-    ])
-}
-
-/// Context keyboard cho Pending view (Account scope)
-pub fn pending_account_inline_keyboard(acc_id: i64) -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![
-        vec![
-            InlineKeyboardButton::callback("💰 Hủy Lời", format!("pnd:cp:{}", acc_id)),
-            InlineKeyboardButton::callback("📉 Hủy Lỗ", format!("pnd:cl:{}", acc_id)),
-        ],
-        vec![
-            InlineKeyboardButton::callback("📈 Hủy Buy", format!("pnd:cb:{}", acc_id)),
-            InlineKeyboardButton::callback("📉 Hủy Sell", format!("pnd:cs:{}", acc_id)),
-        ],
-        vec![
-            InlineKeyboardButton::callback("🔴 HỦY TẤT CẢ Pending", format!("pnd:ca:{}", acc_id)),
-        ],
-        vec![
-            InlineKeyboardButton::callback("🔄 Refresh", format!("pnd:ref:{}", acc_id)),
-        ],
-    ])
-}
-
-/// Context keyboard cho Bots view  
-pub fn bots_inline_keyboard(bots: &[Bot], acc_id: Option<i64>) -> InlineKeyboardMarkup {
+// ── Positions ──
+pub fn positions_tier1_keyboard(symbols: &[String], acc_id: Option<i64>) -> InlineKeyboardMarkup {
     let mut rows: Vec<Vec<InlineKeyboardButton>> = vec![];
+    let pfx = if acc_id.is_some() { "acc:pos" } else { "app:pos" };
 
-    // Toggle mỗi bot
-    for bot in bots {
-        let status = if bot.enabled { "✅" } else { "⏸️" };
-        let pnl = format!("{:+.2}", bot.daily_pnl);
-        let label = format!("{} {} | {}", status, truncate(&bot.id, 14), pnl);
-        let action = if bot.enabled {
-            match acc_id {
-                Some(id) => format!("acc:bof:{}:{}", id, &bot.id[..bot.id.len().min(20)]),
-                None => format!("app:bof:{}", &bot.id[..bot.id.len().min(20)]),
-            }
-        } else {
-            match acc_id {
-                Some(id) => format!("acc:bon:{}:{}", id, &bot.id[..bot.id.len().min(20)]),
-                None => format!("app:bon:{}", &bot.id[..bot.id.len().min(20)]),
-            }
-        };
-        rows.push(vec![InlineKeyboardButton::callback(label, action)]);
+    rows.push(vec![InlineKeyboardButton::callback("🌐 ALL SYMBOLS", format!("{}:sym:ALL", pfx))]);
+
+    for chunk in symbols.chunks(2) {
+        let row: Vec<_> = chunk.iter().map(|sym| {
+            InlineKeyboardButton::callback(sym.clone(), format!("{}:sym:{}", pfx, sym))
+        }).collect();
+        rows.push(row);
     }
+    
+    rows.push(vec![InlineKeyboardButton::callback("🔄 Refresh", format!("{}:ref", pfx))]);
+    InlineKeyboardMarkup::new(rows)
+}
 
-    // Actions
-    if let Some(id) = acc_id {
-        rows.push(vec![
-            InlineKeyboardButton::callback("✅ Bật tất cả", format!("acc:ball:{}", id)),
-            InlineKeyboardButton::callback("⏸️ Tắt tất cả", format!("acc:boff:{}", id)),
-        ]);
+pub fn positions_tier2_keyboard(symbol: &str, acc_id: Option<i64>) -> InlineKeyboardMarkup {
+    let pfx = if acc_id.is_some() { "acc:pos" } else { "app:pos" };
+    let sym_arg = if symbol == "ALL" { "ALL" } else { symbol };
+
+    InlineKeyboardMarkup::new(vec![
+        vec![
+            InlineKeyboardButton::callback("💰 Close Profit", format!("{}:act:cp:{}", pfx, sym_arg)),
+            InlineKeyboardButton::callback("📉 Close Loss", format!("{}:act:cl:{}", pfx, sym_arg)),
+        ],
+        vec![
+            InlineKeyboardButton::callback("📈 Close Buy", format!("{}:act:cb:{}", pfx, sym_arg)),
+            InlineKeyboardButton::callback("📉 Close Sell", format!("{}:act:cs:{}", pfx, sym_arg)),
+        ],
+        vec![
+            InlineKeyboardButton::callback("🔴 CLOSE ALL", format!("{}:act:ca:{}", pfx, sym_arg)),
+        ],
+        vec![
+            InlineKeyboardButton::callback("⬅️ Back", format!("{}:lst", pfx)),
+        ]
+    ])
+}
+
+// ── Bots ──
+pub fn bots_tier1_keyboard(bots: &[Bot], acc_id: Option<i64>) -> InlineKeyboardMarkup {
+    let mut rows: Vec<Vec<InlineKeyboardButton>> = vec![];
+    let pfx = if acc_id.is_some() { "acc:bot" } else { "app:bot" };
+
+    rows.push(vec![InlineKeyboardButton::callback("🤖 MANAGE ALL BOTS", format!("{}:sel:ALL", pfx))]);
+
+    for chunk in bots.chunks(2) {
+        let row: Vec<_> = chunk.iter().map(|bot| {
+            let st = if bot.enabled { "✅" } else { "🔴" };
+            let short_id = &bot.id[..bot.id.len().min(12)];
+            let label = format!("{} {}", st, truncate(&bot.symbol, 10)); // VD: ✅ XAUUSD
+            InlineKeyboardButton::callback(label, format!("{}:sel:{}", pfx, short_id))
+        }).collect();
+        rows.push(row);
+    }
+    
+    rows.push(vec![InlineKeyboardButton::callback("🔄 Refresh", format!("{}:ref", pfx))]);
+    InlineKeyboardMarkup::new(rows)
+}
+
+pub fn bots_tier2_keyboard(bot_id: &str, enabled: Option<bool>, acc_id: Option<i64>) -> InlineKeyboardMarkup {
+    let pfx = if acc_id.is_some() { "acc:bot" } else { "app:bot" };
+    let short_id = &bot_id[..bot_id.len().min(12)];
+    
+    let mut rows: Vec<Vec<InlineKeyboardButton>> = vec![];
+    
+    if bot_id != "ALL" {
+        if let Some(en) = enabled {
+            let label = if en { "🔴 Turn OFF" } else { "🟢 Turn ON" };
+            let act = if en { "off" } else { "on" };
+            rows.push(vec![InlineKeyboardButton::callback(label.to_string(), format!("{}:act:{}:{}", pfx, act, short_id))]);
+        }
     } else {
         rows.push(vec![
-            InlineKeyboardButton::callback("✅ Bật tất cả", "app:ball"),
-            InlineKeyboardButton::callback("⏸️ Tắt tất cả", "app:boff"),
+            InlineKeyboardButton::callback("🟢 Turn ON All", format!("{}:act:onall:ALL", pfx)),
+            InlineKeyboardButton::callback("🔴 Turn OFF All", format!("{}:act:offall:ALL", pfx)),
         ]);
     }
+
+    rows.push(vec![
+        InlineKeyboardButton::callback("💰 Close Profit", format!("{}:act:cp:{}", pfx, short_id)),
+        InlineKeyboardButton::callback("📉 Close Loss", format!("{}:act:cl:{}", pfx, short_id)),
+    ]);
+    rows.push(vec![
+        InlineKeyboardButton::callback("📈 Close Buy", format!("{}:act:cb:{}", pfx, short_id)),
+        InlineKeyboardButton::callback("📉 Close Sell", format!("{}:act:cs:{}", pfx, short_id)),
+    ]);
+    rows.push(vec![
+        InlineKeyboardButton::callback("🔴 CLOSE ALL ORDERS", format!("{}:act:ca:{}", pfx, short_id)),
+    ]);
+    rows.push(vec![
+        InlineKeyboardButton::callback("⬅️ Back", format!("{}:lst", pfx)),
+    ]);
 
     InlineKeyboardMarkup::new(rows)
 }
@@ -191,8 +225,8 @@ pub fn report_inline_keyboard(bots: &[Bot], acc_id: Option<i64>) -> InlineKeyboa
         None => "rpt:all:0".to_string(),
     };
     rows.push(vec![
-        InlineKeyboardButton::callback("📊 Tất cả bots", all_cb),
-        InlineKeyboardButton::callback("📅 Hôm nay", "rpt:today"),
+        InlineKeyboardButton::callback("📊 All bots", all_cb),
+        InlineKeyboardButton::callback("📅 Today", "rpt:today"),
     ]);
 
     // Per-bot report
@@ -216,7 +250,7 @@ pub fn report_inline_keyboard(bots: &[Bot], acc_id: Option<i64>) -> InlineKeyboa
 pub fn confirm_inline_keyboard(action: &str, label: &str) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![vec![
         InlineKeyboardButton::callback(format!("✅ {}", label), action.to_string()),
-        InlineKeyboardButton::callback("❌ Hủy", "cancel"),
+        InlineKeyboardButton::callback("❌ Cancel", "cancel"),
     ]])
 }
 
@@ -228,12 +262,12 @@ pub fn account_info_inline_keyboard(acc_id: i64) -> InlineKeyboardMarkup {
             InlineKeyboardButton::callback("🔴 Auto OFF", format!("acc:ad:{}", acc_id)),
         ],
         vec![
-            InlineKeyboardButton::callback("📈 Xem Positions", format!("acc:pos:{}", acc_id)),
-            InlineKeyboardButton::callback("⏳ Xem Pending", format!("acc:pnd:{}", acc_id)),
+            InlineKeyboardButton::callback("📈 View Positions", format!("acc:pos:{}", acc_id)),
+            InlineKeyboardButton::callback("⏳ View Pending", format!("acc:pnd:{}", acc_id)),
         ],
         vec![
             InlineKeyboardButton::callback("🔄 Refresh", format!("acc:inf:{}", acc_id)),
-            InlineKeyboardButton::callback("⬅️ Danh sách", "app:list"),
+            InlineKeyboardButton::callback("⬅️ Account List", "app:list"),
         ],
     ])
 }

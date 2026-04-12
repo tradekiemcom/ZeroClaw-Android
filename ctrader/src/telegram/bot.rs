@@ -74,12 +74,15 @@ async fn handle_text_input(
     mut session: UserSession,
     state: Arc<AppState>,
 ) -> Result<()> {
+    let clean_badge = session.scope_badge().replace('*', "").replace('\\', "");
+    let text_to_match = if text == clean_badge { "🔄 refresh" } else { text };
+
     // ── Navigation commands ────────────────────────────────────────────
-    match text {
+    match text_to_match {
         "/top" | "⬅️ Top Menu" => {
             session.set_app_scope();
             state.set_user_session(user_id, session.clone()).await;
-            send_app_home(bot, msg.chat.id, &state).await?;
+            send_app_home(bot, msg.chat.id, &session, &state).await?;
             return Ok(());
         }
         "/help" | "❓ Trợ giúp" => {
@@ -91,7 +94,7 @@ async fn handle_text_input(
     }
 
     // ── Navigation với params ──────────────────────────────────────────
-    let parts: Vec<&str> = text.split_whitespace().collect();
+    let parts: Vec<&str> = text_to_match.split_whitespace().collect();
     let cmd = parts[0].to_lowercase();
 
     match cmd.as_str() {
@@ -179,7 +182,13 @@ async fn handle_text_input(
                 CurrentView::Bots => handle_bots(bot, msg.chat.id, &session, &state).await?,
                 CurrentView::Report => handle_report(bot, msg.chat.id, &session, &state).await?,
                 CurrentView::Pending => handle_pending(bot, msg.chat.id, &session, &state).await?,
-                _ => send_app_home(bot, msg.chat.id, &state).await?,
+                _ => {
+                    if session.is_app_scope() {
+                        send_app_home(bot, msg.chat.id, &session, &state).await?;
+                    } else {
+                        handle_account_info(bot, msg.chat.id, &session, &state).await?;
+                    }
+                }
             }
         }
 
@@ -220,7 +229,7 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
         ["top"] | ["app", "home"] => {
             session.set_app_scope();
             state.set_user_session(user_id, session.clone()).await;
-            send_app_home(&bot, chat_id, &state).await?;
+            send_app_home(&bot, chat_id, &session, &state).await?;
             return Ok(());
         }
         ["app", "list"] => {
@@ -250,53 +259,7 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
             return Ok(());
         }
 
-        // ── Positions ───────────────────────────────────────────────────
-
-        // App: all positions
-        ["app", "pos", action] => {
-            let msg = handle_position_action(user_id, None, action, &session, &state).await;
-            edit_or_send(&bot, &q, &msg).await?;
-            // Re-send positions view after action
-            handle_positions(&bot, chat_id, user_id, &session, &state).await?;
-            return Ok(());
-        }
-
-        // Account: positions view
-        ["acc", "pos", acc_id_str] if !matches!(acc_id_str, &"cp"|&"cl"|&"cb"|&"cs"|&"ca"|&"ref") => {
-            if let Ok(acc_id) = acc_id_str.parse::<i64>() {
-                ensure_account_scope(&mut session, acc_id, &state).await;
-                state.set_user_session(user_id, session.clone()).await;
-                handle_positions(&bot, chat_id, user_id, &session, &state).await?;
-            }
-            return Ok(());
-        }
-
-        // Account: position actions (4-part: acc:pos:action:acc_id)
-        ["acc", "pos", action, acc_id_str] => {
-            if let Ok(acc_id) = acc_id_str.parse::<i64>() {
-                let msg = handle_position_action(user_id, Some(acc_id), action, &session, &state).await;
-                edit_or_send(&bot, &q, &msg).await?;
-                // Refresh positions
-                ensure_account_scope(&mut session, acc_id, &state).await;
-                state.set_user_session(user_id, session.clone()).await;
-                handle_positions(&bot, chat_id, user_id, &session, &state).await?;
-            }
-            return Ok(());
-        }
-
-        // ── Pending ────────────────────────────────────────────────────
-        ["pnd", action, acc_id_str] => {
-            if let Ok(acc_id) = acc_id_str.parse::<i64>() {
-                let msg = handle_pending_action(user_id, acc_id, action, &session, &state).await;
-                edit_or_send(&bot, &q, &msg).await?;
-                ensure_account_scope(&mut session, acc_id, &state).await;
-                state.set_user_session(user_id, session.clone()).await;
-                handle_pending(&bot, chat_id, &session, &state).await?;
-            }
-            return Ok(());
-        }
-
-        // ── Autotrade ──────────────────────────────────────────────────
+        // ── Autotrade (từ Info) ────────────────────────────────────────
         ["acc", "ao", acc_id_str] => {
             if let Ok(acc_id) = acc_id_str.parse::<i64>() {
                 ensure_account_scope(&mut session, acc_id, &state).await;
@@ -314,36 +277,47 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
             return Ok(());
         }
 
-        // ── Bots ───────────────────────────────────────────────────────
-        ["acc", "bot", acc_id_str] => {
-            if let Ok(acc_id) = acc_id_str.parse::<i64>() {
-                ensure_account_scope(&mut session, acc_id, &state).await;
-                state.set_user_session(user_id, session.clone()).await;
-                handle_bots(&bot, chat_id, &session, &state).await?;
-            }
+        // ── Positions ───────────────────────────────────────────────────
+        [scope, "pos", "sym", sym] => {
+            handle_positions_tier2(&bot, chat_id, sym, &session, &state).await?;
             return Ok(());
         }
-        ["acc", action @ ("bon" | "bof"), acc_bot] => {
-            // Format: acc:bon:accid:botid combined as acc_bot
-            // Actually split is acc:bon:123_botid → need different parse
-            // Using _ separator for combined acc+bot
-            let ab: Vec<&str> = acc_bot.splitn(2, '_').collect();
-            if ab.len() == 2 {
-                if let Ok(acc_id) = ab[0].parse::<i64>() {
-                    let bot_id = ab[1];
-                    let enabled = *action == "bon";
-                    let found = state.set_bot_enabled(bot_id, enabled).await.unwrap_or(false);
-                    let msg = if found {
-                        format!("{} Bot `{}` đã {}", if enabled { "✅" } else { "⏸️" }, bot_id, if enabled { "BẬT" } else { "TẮT" })
-                    } else {
-                        format!("❌ Không tìm thấy bot `{}`", bot_id)
-                    };
-                    edit_or_send(&bot, &q, &msg).await?;
-                    ensure_account_scope(&mut session, acc_id, &state).await;
-                    state.set_user_session(user_id, session.clone()).await;
-                    handle_bots(&bot, chat_id, &session, &state).await?;
-                }
-            }
+        [scope, "pos", "act", action, sym] => {
+            let msg = handle_position_action(user_id, session.account_id, action, sym, &session, &state).await;
+            edit_or_send(&bot, &q, &msg).await?;
+            handle_positions_tier2(&bot, chat_id, sym, &session, &state).await?;
+            return Ok(());
+        }
+        [scope, "pos", "lst"] | [scope, "pos", "ref"] => {
+            handle_positions(&bot, chat_id, user_id, &session, &state).await?;
+            return Ok(());
+        }
+
+        // ── Pending ────────────────────────────────────────────────────
+        [scope, "pnd", "act", action] => {
+            let msg = handle_pending_action(user_id, session.account_id, action, &session, &state).await;
+            edit_or_send(&bot, &q, &msg).await?;
+            handle_pending(&bot, chat_id, &session, &state).await?;
+            return Ok(());
+        }
+        [scope, "pnd", "ref"] => {
+            handle_pending(&bot, chat_id, &session, &state).await?;
+            return Ok(());
+        }
+
+        // ── Bots ───────────────────────────────────────────────────────
+        [scope, "bot", "sel", short_id] => {
+            handle_bots_tier2(&bot, chat_id, short_id, &session, &state).await?;
+            return Ok(());
+        }
+        [scope, "bot", "act", action, short_id] => {
+            let msg = handle_bot_action(user_id, session.account_id, action, short_id, &session, &state).await;
+            edit_or_send(&bot, &q, &msg).await?;
+            handle_bots_tier2(&bot, chat_id, short_id, &session, &state).await?;
+            return Ok(());
+        }
+        [scope, "bot", "lst"] | [scope, "bot", "ref"] => {
+            handle_bots(&bot, chat_id, &session, &state).await?;
             return Ok(());
         }
 
@@ -366,16 +340,19 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
 // ── View Handlers ─────────────────────────────────────────────────────────────
 
 /// App home screen
-async fn send_app_home(bot: &Bot, chat_id: ChatId, state: &Arc<AppState>) -> Result<()> {
+async fn send_app_home(bot: &Bot, chat_id: ChatId, session: &UserSession, state: &Arc<AppState>) -> Result<()> {
     let status = format_status(state).await;
-    let text = format!(
-        "🌐 *APP SCOPE* — Tất cả tài khoản\n━━━━━━━━━━━━━━━━━━━━\n{}",
-        status
-    );
-    bot.send_message(chat_id, text)
+    let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), status);
+    
+    let sent = bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
-        .reply_markup(keyboards::app_reply_keyboard())
+        .reply_markup(keyboards::app_reply_keyboard(&session.scope_badge()))
         .await?;
+
+    // Xóa pin cũ và ghim tin nhắn App Scope để người dùng luôn thấy
+    let _ = bot.unpin_all_chat_messages(chat_id).await;
+    let _ = bot.pin_chat_message(chat_id, sent.id).await;
+
     Ok(())
 }
 
@@ -389,10 +366,10 @@ async fn handle_list_accounts(
     drop(accounts);
 
     let scope = session.scope_badge();
-    let mut content = "💼 *Danh sách tài khoản*\n━━━━━━━━━━━━━━━━━━━━\n".to_string();
+    let mut content = "💼 *Accounts List*\n━━━━━━━━━━━━━━━━━━━━\n".to_string();
 
     if acc_list.is_empty() {
-        content.push_str("❌ Chưa có tài khoản nào\\.\nDùng `/account add` để thêm\\.");
+        content.push_str("❌ No accounts found\\.\nUse `/account add` to add one\\.");
     } else {
         for acc in &acc_list {
             let atype = if acc.is_real() { "🔴 REAL" } else { "🔵 DEMO" };
@@ -403,7 +380,7 @@ async fn handle_list_accounts(
                 acc.balance, acc.equity, acc.daily_pnl
             ));
         }
-        content.push_str("\n👇 *Chọn tài khoản để vào quản lý chi tiết:*");
+        content.push_str("\n👇 *Select an account to manage:*");
     }
 
     let inline_kb = keyboards::accounts_list_keyboard(&acc_list);
@@ -451,16 +428,19 @@ async fn enter_account_scope(
         acc.daily_pnl, auto
     );
 
-    let inline_kb = keyboards::account_info_inline_keyboard(acc_id);
-    bot.send_message(chat_id, text)
+    let sent_info = bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
         .reply_markup(ReplyMarkup::InlineKeyboard(inline_kb))
         .await?;
-    // Send account reply keyboard
-    bot.send_message(chat_id, "📋 Bàn phím account đã kích hoạt\\.")
-        .parse_mode(ParseMode::MarkdownV2)
-        .reply_markup(keyboards::account_reply_keyboard())
-        .await?;
+    
+    // Xóa pin cũ và ghim tin nhắn Account Scope
+    let _ = bot.unpin_all_chat_messages(chat_id).await;
+    let _ = bot.pin_chat_message(chat_id, sent_info.id).await;
+
+    // Send account reply keyboard (ẩn) - chỉ để cập nhật keyboard dưới màn hình
+    let _ = bot.send_message(chat_id, format!("Đã chuyển sang {:?}", session.scope_badge().replace('*', "").replace('\\', "")))
+        .reply_markup(keyboards::account_reply_keyboard(&session.scope_badge()))
+        .await;
     Ok(())
 }
 
@@ -529,11 +509,11 @@ async fn handle_positions(
     let float_pnl: f64 = positions.iter().map(|p| p.pnl).sum();
     let float_icon = if float_pnl >= 0.0 { "🟢" } else { "🔴" };
 
-    let mut content = format!("📈 *Positions đang mở* \\({} lệnh\\)\n", positions.len());
+    let mut content = format!("📈 *Open Positions* \\({} orders\\)\n", positions.len());
     content.push_str("━━━━━━━━━━━━━━━━━━━━\n");
 
     if positions.is_empty() {
-        content.push_str("📭 Không có lệnh nào đang mở\\.");
+        content.push_str("📭 No open positions\\.");
     } else {
         for pos in &positions {
             let pnl_icon = if pos.pnl >= 0.0 { "💰" } else { "📉" };
@@ -551,12 +531,47 @@ async fn handle_positions(
         content.push_str(&format!("{} Float P&L: `{:+.2} USD`", float_icon, float_pnl));
     }
 
-    let inline_kb = match session.account_id {
-        Some(acc_id) => keyboards::positions_account_inline_keyboard(acc_id),
-        None => keyboards::positions_app_inline_keyboard(),
-    };
+    // Lấy danh sách symbol unique
+    let mut symbols_set = std::collections::HashSet::new();
+    for pos in &positions {
+        symbols_set.insert(pos.symbol.clone());
+    }
+    let mut symbols: Vec<String> = symbols_set.into_iter().collect();
+    symbols.sort();
 
     let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), content);
+    let inline_kb = keyboards::positions_tier1_keyboard(&symbols, session.account_id);
+
+    bot.send_message(chat_id, text)
+        .parse_mode(ParseMode::MarkdownV2)
+        .reply_markup(ReplyMarkup::InlineKeyboard(inline_kb))
+        .await?;
+    Ok(())
+}
+
+async fn handle_positions_tier2(
+    bot: &Bot, chat_id: ChatId, symbol: &str,
+    session: &UserSession, state: &Arc<AppState>
+) -> Result<()> {
+    let all_positions = state.get_open_positions().await;
+    let mut positions: Vec<_> = match session.account_id {
+        Some(acc_id) => all_positions.into_iter().filter(|p| p.account_id == acc_id).collect(),
+        None => all_positions,
+    };
+
+    if symbol != "ALL" {
+        positions.retain(|p| p.symbol == symbol);
+    }
+
+    let float_pnl: f64 = positions.iter().map(|p| p.pnl).sum();
+    let content = format!(
+        "📈 *Manage:* `{}`\nOrders: {}\nFloat P&L: `{:+.2}`\n👇 Select action below:", 
+        escape_md(symbol), positions.len(), float_pnl
+    );
+
+    let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), content);
+    let inline_kb = keyboards::positions_tier2_keyboard(symbol, session.account_id);
+
     bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
         .reply_markup(ReplyMarkup::InlineKeyboard(inline_kb))
@@ -569,10 +584,10 @@ async fn handle_pending(
     bot: &Bot, chat_id: ChatId,
     session: &UserSession, state: &Arc<AppState>
 ) -> Result<()> {
-    let acc_id = session.account_id.unwrap_or(0);
-    let content = "⏳ *Pending Orders*\n━━━━━━━━━━━━━━━━━━━━\n📭 Mock mode: Chưa kết nối cTrader thật\\.".to_string();
+    let acc_id = session.account_id;
+    let content = "⏳ *Pending Orders*\n━━━━━━━━━━━━━━━━━━━━\n📭 No active pending orders \\(Mock\\)\\.".to_string();
 
-    let inline_kb = keyboards::pending_account_inline_keyboard(acc_id);
+    let inline_kb = keyboards::pending_inline_keyboard(acc_id);
     let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), content);
     bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
@@ -591,18 +606,81 @@ async fn handle_bots(
     drop(bots_map);
     bots.sort_by(|a, b| a.id.cmp(&b.id));
 
-    let mut content = format!("🤖 *Bots* \\({} bots\\)\n━━━━━━━━━━━━━━━━━━━━\n", bots.len());
+    let mut content = format!("🤖 *Bots List* \\({} bots\\)\n━━━━━━━━━━━━━━━━━━━━\n", bots.len());
     for bot_item in &bots {
         let st = if bot_item.enabled { "✅ ON" } else { "⏸️ OFF" };
         content.push_str(&format!(
-            "{} `{}` — {} \\| P&L: `{:+.2}` \\| Trades: {}\n",
+            "{} `{}` — {} \\| P&L: `{:+.2}`\n",
             st, escape_md(&bot_item.id), escape_md(&bot_item.symbol),
-            bot_item.daily_pnl, bot_item.trade_count_today
+            bot_item.daily_pnl
         ));
     }
 
-    let inline_kb = keyboards::bots_inline_keyboard(&bots, session.account_id);
+    let inline_kb = keyboards::bots_tier1_keyboard(&bots, session.account_id);
     let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), content);
+    bot.send_message(chat_id, text)
+        .parse_mode(ParseMode::MarkdownV2)
+        .reply_markup(ReplyMarkup::InlineKeyboard(inline_kb))
+        .await?;
+    Ok(())
+}
+
+async fn handle_bots_tier2(
+    bot: &Bot, chat_id: ChatId, bot_id_short: &str,
+    session: &UserSession, state: &Arc<AppState>
+) -> Result<()> {
+    let bots_map = state.bots.read().await;
+    
+    let mut header = String::new();
+    let enabled = if bot_id_short == "ALL" {
+        header.push_str("🤖 *MANAGE ALL BOTS*\n");
+        None
+    } else {
+        match bots_map.values().find(|b| b.id.starts_with(bot_id_short)) {
+            Some(b) => {
+                header.push_str(&format!("🤖 *Bot:* `{}`\n", escape_md(&b.name)));
+                header.push_str(&format!("📌 *Symbol:* `{}` \\| *TF:* `{}`\n", escape_md(&b.symbol), escape_md(&b.timeframe)));
+                header.push_str(&format!("🛑 *Daily Limit:* Profit `${:.2}` \\| Loss `${:.2}`\n", b.daily_target_profit, b.daily_max_loss));
+                header.push_str(&format!("💰 *P&L Today:* `{:+.2}`\n", b.daily_pnl));
+                Some(b.enabled)
+            },
+            None => {
+                header.push_str("❌ Bot not found.\n");
+                None
+            }
+        }
+    };
+    drop(bots_map);
+
+    // Filter positions
+    let all_positions = state.get_open_positions().await;
+    let mut bot_positions: Vec<_> = match session.account_id {
+        Some(acc_id) => all_positions.into_iter().filter(|p| p.account_id == acc_id).collect(),
+        None => all_positions,
+    };
+    if bot_id_short != "ALL" {
+        bot_positions.retain(|p| p.bot_id.starts_with(bot_id_short));
+    }
+
+    header.push_str("\n*📈 Open Positions:*\n");
+    if bot_positions.is_empty() {
+        header.push_str("📭 No open positions\\.\n");
+    } else {
+        for pos in &bot_positions {
+            let pnl_icon = if pos.pnl >= 0.0 { "🟢" } else { "🔴" };
+            header.push_str(&format!("{} {} `{}` {:.2}L @ `{:.5}` \\| `{:+.2}`\n", 
+                pnl_icon, pos.side, escape_md(&pos.symbol), pos.volume, pos.open_price, pos.pnl));
+        }
+    }
+
+    header.push_str("\n*⏳ Pending Orders:*\n");
+    header.push_str("📭 No active pending orders \\(Mock\\)\\.\n");
+
+    header.push_str("\n👇 *Select Action:*");
+
+    let inline_kb = keyboards::bots_tier2_keyboard(bot_id_short, enabled, session.account_id);
+
+    let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), header);
     bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
         .reply_markup(ReplyMarkup::InlineKeyboard(inline_kb))
@@ -717,19 +795,21 @@ async fn handle_close_all(
     Ok(())
 }
 
-// ── Position Actions (from inline keyboard) ───────────────────────────────────
+// ── Action Handlers ───────────────────────────────────────────────────────────
 
 async fn handle_position_action(
     user_id: i64, acc_id: Option<i64>,
-    action: &str, session: &UserSession, state: &Arc<AppState>
+    action: &str, symbol: &str, session: &UserSession, state: &Arc<AppState>
 ) -> String {
-    if action == "ref" { return "🔄 Refreshing...".to_string(); }
-
     let positions = state.get_open_positions().await;
-    let target_positions: Vec<_> = match acc_id {
+    let mut target_positions: Vec<_> = match acc_id {
         Some(id) => positions.into_iter().filter(|p| p.account_id == id).collect(),
         None => positions,
     };
+
+    if symbol != "ALL" {
+        target_positions.retain(|p| p.symbol == symbol);
+    }
 
     let to_close: Vec<_> = match action {
         "cp" => target_positions.iter().filter(|p| p.pnl > 0.0).collect(),  // close profit
@@ -768,11 +848,88 @@ async fn handle_position_action(
 }
 
 async fn handle_pending_action(
-    user_id: i64, acc_id: i64, action: &str,
+    user_id: i64, acc_id: Option<i64>, action: &str,
     session: &UserSession, state: &Arc<AppState>
 ) -> String {
-    if action == "ref" { return "🔄 Refreshing...".to_string(); }
-    format!("🧪 Mock: Hủy pending [{}] cho account #{}", action, acc_id)
+    let lbl = match action {
+        "cbl" => "Buy Limit",
+        "csl" => "Sell Limit",
+        "cbs" => "Buy Stop",
+        "css" => "Sell Stop",
+        "cbsl" => "Buy Stop Limit",
+        "cssl" => "Sell Stop Limit",
+        "ca" => "Tất cả lệnh",
+        _ => "Lệnh không xác định",
+    };
+    format!("🧪 Mock: Hủy {} cho scope (Acc: {:?})", lbl, acc_id)
+}
+
+async fn handle_bot_action(
+    user_id: i64, acc_id: Option<i64>, action: &str, bot_id_short: &str,
+    session: &UserSession, state: &Arc<AppState>
+) -> String {
+    // 1. Nếu hành động là turn on/off:
+    if action == "on" || action == "off" {
+        let enabled = action == "on";
+        let bots = state.bots.read().await;
+        // Lookup full bot_id
+        let bot_id = match bots.values().find(|b| b.id.starts_with(bot_id_short)) {
+            Some(b) => b.id.clone(),
+            None => return "❌ Không tìm thấy Bot!".to_string(), // Error -> return
+        };
+        drop(bots);
+        
+        let _ = state.set_bot_enabled(&bot_id, enabled).await;
+        return format!("{} Đã {} Bot {}", if enabled { "✅" } else { "🔴" }, if enabled { "BẬT" } else { "TẮT" }, bot_id);
+    }
+
+    if action == "onall" || action == "offall" {
+        let enabled = action == "onall";
+        let mut bots = state.bots.write().await;
+        for bot in bots.values_mut() {
+            bot.enabled = enabled;
+            // update in db later...
+        }
+        return format!("{} Đã {} TẤT CẢ Bots", if enabled { "✅" } else { "🔴" }, if enabled { "BẬT" } else { "TẮT" });
+    }
+
+    // 2. Chức năng đóng lệnh bằng bot 
+    let all_positions = state.get_open_positions().await;
+    let mut positions: Vec<_> = match acc_id {
+        Some(id) => all_positions.into_iter().filter(|p| p.account_id == id).collect(),
+        None => all_positions,
+    };
+
+    if bot_id_short != "ALL" {
+        positions.retain(|p| p.bot_id.starts_with(bot_id_short));
+    }
+
+    let to_close: Vec<_> = match action {
+        "cp" => positions.iter().filter(|p| p.pnl > 0.0).collect(),  
+        "cl" => positions.iter().filter(|p| p.pnl < 0.0).collect(),  
+        "cb" => positions.iter().filter(|p| p.side.to_uppercase() == "BUY").collect(),
+        "cs" => positions.iter().filter(|p| p.side.to_uppercase() == "SELL").collect(),
+        "ca" => positions.iter().collect(),  
+        _ => return "❌ Action không xác định".to_string(),
+    };
+
+    let count = to_close.len();
+    if count == 0 {
+        return "📭 Không có lệnh phù hợp để đóng.".to_string();
+    }
+
+    // ... Handle actual close ...
+    {
+        let mut pos_lock = state.positions.write().await;
+        for pos in pos_lock.iter_mut() {
+            if to_close.iter().any(|p| p.id == pos.id) {
+                pos.status = crate::models::PositionStatus::Closed;
+                pos.closed_at = Some(Utc::now());
+            }
+        }
+    }
+
+    format!("✅ Đã đóng {} lệnh.", count)
 }
 
 // ── Key management ────────────────────────────────────────────────────────────

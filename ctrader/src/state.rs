@@ -6,7 +6,7 @@ use teloxide::Bot;
 use chrono::Utc;
 
 use crate::config::Config;
-use crate::models::{Account, AccountType, Bot as TradingBot, Position, ApiClient};
+use crate::models::{Account, AccountType, Bot as TradingBot, Position, ApiClient, PriceQuote, default_mock_prices};
 use crate::ctrader::CtraderClient;
 use crate::telegram::UserSession;
 
@@ -44,6 +44,7 @@ pub struct AppState {
     pub positions: RwLock<Vec<Position>>,
     pub api_clients: RwLock<HashMap<String, ApiClient>>, // key = api_key string
     pub user_sessions: RwLock<HashMap<i64, UserSession>>, // key = telegram user_id
+    pub prices: RwLock<HashMap<String, PriceQuote>>,     // key = symbol (uppercase)
 }
 
 impl AppState {
@@ -70,6 +71,12 @@ impl AppState {
         // Index bằng api_key để lookup nhanh trong auth middleware
         let api_clients = RwLock::new(clients_vec.into_iter().map(|c| (c.api_key.clone(), c)).collect());
 
+        // Seed mock prices cho tất cả symbol phổ biến
+        let price_seed: HashMap<String, PriceQuote> = default_mock_prices()
+            .into_iter()
+            .map(|q| (q.symbol.clone(), q))
+            .collect();
+
         Arc::new(Self {
             config,
             db,
@@ -81,6 +88,7 @@ impl AppState {
             positions,
             api_clients,
             user_sessions: RwLock::new(HashMap::new()),
+            prices: RwLock::new(price_seed),
         })
     }
 
@@ -102,6 +110,25 @@ impl AppState {
 
     pub async fn reset_user_session(&self, user_id: i64) {
         self.user_sessions.write().await.remove(&user_id);
+    }
+
+    // ── Price Management ──────────────────────────────────────────────────────
+
+    /// Cập nhật giá cho 1 symbol (gọi từ cTrader tick callback hoặc webhook)
+    pub async fn update_price(&self, quote: PriceQuote) {
+        self.prices.write().await.insert(quote.symbol.clone(), quote);
+    }
+
+    /// Lấy giá 1 symbol
+    pub async fn get_price(&self, symbol: &str) -> Option<PriceQuote> {
+        self.prices.read().await.get(&symbol.to_uppercase()).cloned()
+    }
+
+    /// Lấy tất cả giá
+    pub async fn get_all_prices(&self) -> Vec<PriceQuote> {
+        let mut quotes: Vec<PriceQuote> = self.prices.read().await.values().cloned().collect();
+        quotes.sort_by(|a, b| a.symbol.cmp(&b.symbol));
+        quotes
     }
 
     pub fn is_admin(&self, user_id: i64) -> bool {
