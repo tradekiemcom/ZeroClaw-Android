@@ -20,6 +20,7 @@
 11. [TradingView Integration](#11-tradingview-integration)
 12. [MT5 Integration](#12-mt5-integration)
 13. [Troubleshooting](#13-troubleshooting)
+14. [Price Feed API](#14-price-feed-api)
 
 ---
 
@@ -623,6 +624,45 @@ rm -f iztrade.db-wal iztrade.db-shm
 
 # Restart iztrade
 ```
+
+---
+
+## 14. Price Feed API
+
+Module `ctrader` có tích hợp sẵn **Price Feed API** cho phép bất kỳ ứng dụng nào (ZeroClaw agent, TradingView, bot khác...) lấy giá thị trường real-time mà **không cần Bearer token**.
+
+### Endpoint
+
+| Method | URL | Auth | Mô tả |
+|--------|-----|------|-------|
+| `GET` | `/api/prices` | ❌ Public | Lấy tất cả giá đang có |
+| `GET` | `/api/prices/{symbol}` | ❌ Public | Lấy giá 1 symbol cụ thể |
+| `POST` | `/api/prices/update` | ✅ Bearer | Push giá từ nguồn ngoài (webhook/cTrader) |
+
+### Ví dụ sử dụng
+
+**Lấy giá vàng (XAUUSD):**
+```bash
+curl http://localhost:7381/api/prices/XAUUSD
+```
+
+**Phản hồi:**
+```json
+{
+  "success": true,
+  "symbol": "XAUUSD",
+  "bid": 3299.50,
+  "ask": 3300.50,
+  "mid": 3300.00,
+  "spread": 1.0,
+  "source": "ctrader",
+  "timestamp": "2026-04-12T12:00:00Z",
+  "age_secs": 3,
+  "stale": false
+}
+```
+
+> **Lưu ý:** Giá mặc định là **mock** khi chưa kết nối cTrader thật. Khi kết nối cTrader OpenAPI, giá sẽ được cập nhật realtime qua tick subscription và trường `"source"` sẽ đổi thành `"ctrader"`.
 
 ---
 
