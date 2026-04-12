@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use anyhow::Result;
 use teloxide::prelude::*;
+use teloxide::Bot;
 use teloxide::types::{
     Message, CallbackQuery, ParseMode, ReplyMarkup,
     KeyboardMarkup, InlineKeyboardMarkup,
@@ -10,7 +11,7 @@ use chrono::Utc;
 
 use crate::state::AppState;
 use crate::models::{
-    Account, Bot, Position, ApiClient,
+    Account, Bot as TradingBot, Position, ApiClient,
     OrderRequest, OrderAction, TradeSource, TradeSide, AccountScope,
 };
 use crate::engine::dispatch;
@@ -216,7 +217,7 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
     }
 
     let chat_id = match &q.message {
-        Some(m) => m.chat().id,
+        Some(m) => m.chat.id,
         None => return Ok(()),
     };
 
@@ -1156,7 +1157,7 @@ async fn send_error(bot: &Bot, chat_id: ChatId, msg: &str, session: &UserSession
 async fn edit_or_send(bot: &Bot, q: &CallbackQuery, text: &str) -> Result<()> {
     use teloxide::types::ChatId;
     if let Some(msg) = &q.message {
-        let _ = bot.edit_message_text(msg.chat().id, msg.id(), text)
+        let _ = bot.edit_message_text(msg.chat.id, msg.id, text)
             .parse_mode(ParseMode::MarkdownV2)
             .await;
     }

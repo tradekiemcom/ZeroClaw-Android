@@ -124,13 +124,15 @@ pub async fn dispatch(state: Arc<AppState>, req: OrderRequest) -> Result<Dispatc
                 if let Some(bot) = &state.telegram_bot {
                     let msg = format!(
                         "🔴 *CLOSE ALL* \n\
-                        Source: {} \| Bot: `{}`\n\
-                        Đã đóng {} lệnh \+ tắt autotrade",
+                        Source: {} | Bot: `{}`\n\
+                        Đã đóng {} lệnh + tắt autotrade",
                         req.source, req.bot_id, closed
                     );
                     let _ = crate::telegram::send_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
                 }
             }
+        }
+
 
         // ── Close by Bot ─────────────────────────────────────────────
         OrderAction::Close => {
@@ -159,6 +161,8 @@ pub async fn dispatch(state: Arc<AppState>, req: OrderRequest) -> Result<Dispatc
                     let _ = crate::telegram::send_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
                 }
             }
+        }
+
 
         // ── Open Trade ───────────────────────────────────────────────
         OrderAction::Open => {

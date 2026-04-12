@@ -1,0 +1,14 @@
+/Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/deps/serde-ec59a0281889c8cd.d: /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/build/serde-e8480f3b678a742a/out/private.rs
+
+/Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/deps/libserde-ec59a0281889c8cd.rlib: /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/build/serde-e8480f3b678a742a/out/private.rs
+
+/Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/deps/libserde-ec59a0281889c8cd.rmeta: /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/build/serde-e8480f3b678a742a/out/private.rs
+
+/Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/mgn63opt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/build/serde-e8480f3b678a742a/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/mgn63opt/Desktop/TradeKiemCom/ZeroClaw-Android/ctrader/target/debug/build/serde-e8480f3b678a742a/out

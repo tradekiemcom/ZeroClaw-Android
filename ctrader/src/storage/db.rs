@@ -253,9 +253,10 @@ pub async fn find_api_client_by_key(pool: &SqlitePool, api_key: &str) -> Result<
 }
 
 pub async fn increment_client_usage(pool: &SqlitePool, client_id: &str) -> Result<()> {
+    let now = Utc::now().to_rfc3339();
     sqlx::query!(
         "UPDATE api_clients SET request_count=request_count+1, last_used_at=? WHERE id=?",
-        Utc::now().to_rfc3339(), client_id
+        now, client_id
     )
     .execute(pool).await?;
     Ok(())
@@ -361,18 +362,20 @@ pub async fn get_open_positions(pool: &SqlitePool) -> Result<Vec<Position>> {
 }
 
 pub async fn close_positions_by_bot(pool: &SqlitePool, bot_id: &str) -> Result<i64> {
+    let now = Utc::now().to_rfc3339();
     let result = sqlx::query!(
         "UPDATE positions SET status='closed', closed_at=? WHERE bot_id=? AND status='open'",
-        Utc::now().to_rfc3339(), bot_id,
+        now, bot_id,
     )
     .execute(pool).await?;
     Ok(result.rows_affected() as i64)
 }
 
 pub async fn close_all_positions(pool: &SqlitePool) -> Result<i64> {
+    let now = Utc::now().to_rfc3339();
     let result = sqlx::query!(
         "UPDATE positions SET status='closed', closed_at=? WHERE status='open'",
-        Utc::now().to_rfc3339(),
+        now,
     )
     .execute(pool).await?;
     Ok(result.rows_affected() as i64)

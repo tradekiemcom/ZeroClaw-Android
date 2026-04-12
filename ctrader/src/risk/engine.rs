@@ -19,39 +19,44 @@ pub async fn run_risk_monitor(state: Arc<AppState>) {
 }
 
 async fn check_risk(state: &Arc<AppState>) -> Result<()> {
-    let accounts = state.accounts.read().await;
+    // Lưu tạm các trigger để xử lý sau khi nhả lock
+    let mut triggers = Vec::new();
 
-    for acc in accounts.values() {
-        if !acc.autotrade {
-            continue; // Bỏ qua nếu đã tắt autotrade
-        }
-
-        if let Some(reason) = acc.should_halt_trading() {
-            warn!("🛑 Risk Halt | Account: {} ({}) | {}", acc.id, acc.name, reason);
-
-            // Disable autotrade
-            drop(accounts); // Release read lock trước khi write
-            state.set_all_autotrade(false).await?;
-
-            // Notify Telegram
-            if let Some(bot) = &state.telegram_bot {
-                let msg = format!(
-                    "🚨 *RISK ALERT*\n\n\
-                    Account: #{} {}\n\
-                    📊 PnL: {:.2}\n\
-                    ⚠️ {}\n\n\
-                    🔴 Autotrade đã được TẮT tự động.",
-                    acc.id, acc.name, acc.daily_pnl, reason
-                );
-                let _ = send_telegram_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
+    {
+        let accounts = state.accounts.read().await;
+        for acc in accounts.values() {
+            if !acc.autotrade {
+                continue;
             }
+            if let Some(reason) = acc.should_halt_trading() {
+                triggers.push((acc.id, acc.name.clone(), acc.daily_pnl, reason));
+            }
+        }
+    } // lock dropped here
 
-            return Ok(());
+    for (acc_id, name, pnl, reason) in triggers {
+        warn!("🛑 Risk Halt | Account: {} ({}) | {}", acc_id, name, reason);
+
+        // Disable autotrade
+        state.set_all_autotrade(false).await?;
+
+        // Notify Telegram
+        if let Some(bot) = &state.telegram_bot {
+            let msg = format!(
+                "🚨 *RISK ALERT*\n\n\
+                Account: #{} {}\n\
+                📊 PnL: {:.2}\n\
+                ⚠️ {}\n\n\
+                🔴 Autotrade đã được TẮT tự động.",
+                acc_id, name, pnl, reason
+            );
+            let _ = send_telegram_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
         }
     }
 
     Ok(())
 }
+
 
 /// Reset daily P&L lúc 00:00 UTC
 pub async fn run_daily_reset(state: Arc<AppState>) {
