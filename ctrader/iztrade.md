@@ -332,4 +332,32 @@ curl -sL ctrader.tradekiem.com | bash
 
 ## 14. Summary
 
-> iZtradeRush = Trading Brain + Execution Engine + Control System + API Gateway
+> iZtrader = Trading Brain + Execution Engine + Control System + API Gateway
+
+---
+
+## 15. Price Feed API
+
+Hệ thống có cung cấp API giá `real-time` (Public, không yêu cầu Bearer auth) để cấp giá cho ZeroClaw Agent hoặc ứng dụng bên ngoài.
+
+**Endpoints:**
+- `GET /api/prices` -> Lấy tất cả giá (trả về JSON mảng `prices`).
+- `GET /api/prices/{symbol}` -> Lấy giá 1 symbol cụ thể (Vd: `/api/prices/XAUUSD`).
+- `POST /api/prices/update` -> Push giá từ webhook/cTrader (Cần Bearer token).
+
+**Cấu trúc dữ liệu trả về:**
+```json
+{
+  "success": true,
+  "symbol": "XAUUSD",
+  "bid": 3299.50,
+  "ask": 3300.50,
+  "mid": 3300.0,
+  "spread": 1.0,
+  "source": "ctrader",
+  "timestamp": "2026-04-12T12:00:00Z",
+  "age_secs": 3,
+  "stale": false
+}
+```
+Mặc định sẽ cấp các giá Mock cho 15 symbol phổ biến nếu chưa connect với OpenAPI. Khi có dữ liệu thật (tick data), source sẽ hiển thị `ctrader`.
