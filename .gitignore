@@ -26,3 +26,9 @@ Thumbs.db
 
 # Session data
 dashboard/sessions/
+
+# Configuration & Secrets
+finalconfig.toml
+oldconfig.toml
+newconfig.toml
+wrangler.toml
