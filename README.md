@@ -19,9 +19,6 @@ chmod +x install.sh && ./install.sh
 
 ## 🖥️ Hướng Dẫn Vận Hành Qua Dashboard (GUI)
 Bộ tài liệu kỹ thuật tập trung vào việc cấu hình trực quan:
-- 🛠️ **[GUI SKILL & TOOL MANAGEMENT](docs/OMNI_AGENT_V15/01_GUI_SKILL_TOOL_GUIDE.md)**: Cách tạo Công cụ và Kỹ năng qua Web.
-- 🎒 **[REAL-WORLD SKILL CATALOG](docs/OMNI_AGENT_V15/02_DANH_MUC_SKILL_THUC_CHIEN.md)**: Kho mã mẫu (Analysis, News, Planner) để Copy-Paste.
-- ⏰ **[AUTOMATED TASK (CRON)](docs/OMNI_AGENT_V15/03_QUAN_LY_TASK_TU_DONG.md)**: Cách lập lịch cho Agent tự động làm việc 24/7.
 - 🧠 **[ADVANCED MODEL ROUTING](docs/OMNI_AGENT_V15/03_ADVANCED_MODEL_ROUTING.md)**: Kỹ thuật đổi Model AI cho từng kỹ năng.
 
 *(Dự án đã lược bỏ hoàn toàn các mô hình quản lý doanh nghiệp phức tạp để tập trung vào hiệu suất tự động hóa thuần túy).*

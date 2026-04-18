@@ -13,6 +13,13 @@ RED='\033[31m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+# Nhận diện hệ điều hành
+OS_TYPE=$(uname)
+IS_TERMUX=false
+if [[ "$OS_TYPE" == "Linux" && -d "/data/data/com.termux" ]]; then
+    IS_TERMUX=true
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$PROJECT_DIR/.env"
@@ -70,13 +77,15 @@ CTRADER_HOST="${CTRADER_HOST:-openapi.ctrader.com}"
 CTRADER_PORT="${CTRADER_PORT:-5035}"
 
 echo ""
-echo -e "  ${YELLOW}Chế độ kết nối:${NC}"
-echo -e "  1. mock  — Giả lập (test Telegram + API không cần cTrader thật)"
-echo -e "  2. live  — Kết nối cTrader thật"
+echo -e "  ${YELLOW}Chế độ kết nối (Mode):${NC}"
+echo -e "  1. mock  — Giả lập (Test logic, Telegram, API không cần cTrader thật)"
+echo -e "  2. live  — KẾT NỐI THẬT (Giao dịch trực tiếp với server cTrader)"
 echo -ne "${BLUE}Chọn mode${NC} [${CTRADER_MODE:-mock}]: "
-read _mode
-if [ "$_mode" = "2" ] || [ "$_mode" = "live" ]; then
+read _mode_input
+if [ "$_mode_input" = "2" ] || [ "$_mode_input" = "live" ]; then
     CTRADER_MODE="live"
+elif [ "$_mode_input" = "1" ] || [ "$_mode_input" = "mock" ]; then
+    CTRADER_MODE="mock"
 else
     CTRADER_MODE="${CTRADER_MODE:-mock}"
 fi
@@ -187,11 +196,36 @@ echo -e "───────────────────────�
 
 if ! command -v cargo &>/dev/null; then
     echo -e "${YELLOW}Rust chưa được cài đặt. Đang cài...${NC}"
-    pkg install rust clang make binutils -y
+    if [ "$IS_TERMUX" = true ]; then
+        pkg install rust clang make binutils -y
+    elif [[ "$OS_TYPE" == "Darwin" ]]; then
+        if ! command -v brew &>/dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+        brew install rust
+    else
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source $HOME/.cargo/env
+    fi
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 cd "$PROJECT_DIR"
+
+if ! command -v sqlite3 &>/dev/null; then
+    echo -e "${YELLOW}Cài đặt sqlite3 để tạo schema cho compiler...${NC}"
+    pkg install sqlite -y
+fi
+
+DB_FILE=$(echo "$DATABASE_URL" | sed 's/sqlite:\/\///')
+echo -e "${YELLOW}Khởi tạo schema DB tạm tại $DB_FILE cho sqlx macro...${NC}"
+sqlite3 "$DB_FILE" "
+CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, name TEXT NOT NULL, broker_account_id INTEGER NOT NULL UNIQUE, account_type TEXT NOT NULL DEFAULT 'demo', access_token TEXT, connected INTEGER NOT NULL DEFAULT 0, autotrade INTEGER NOT NULL DEFAULT 1, balance REAL NOT NULL DEFAULT 0, equity REAL NOT NULL DEFAULT 0, float_profit REAL NOT NULL DEFAULT 0, daily_pnl REAL NOT NULL DEFAULT 0, daily_target_profit REAL NOT NULL DEFAULT 0, daily_max_loss REAL NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS bots (id TEXT PRIMARY KEY, name TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, symbol TEXT NOT NULL DEFAULT 'XAUUSD', timeframe TEXT NOT NULL DEFAULT 'M15', daily_target_profit REAL NOT NULL DEFAULT 0, daily_max_loss REAL NOT NULL DEFAULT 0, daily_pnl REAL NOT NULL DEFAULT 0, trade_count_today INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS api_clients (id TEXT PRIMARY KEY, name TEXT NOT NULL, api_key TEXT NOT NULL UNIQUE, source TEXT NOT NULL DEFAULT 'API', enabled INTEGER NOT NULL DEFAULT 1, description TEXT, allowed_actions TEXT NOT NULL DEFAULT '[]', request_count INTEGER NOT NULL DEFAULT 0, last_used_at TEXT, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS positions (id TEXT PRIMARY KEY, order_id TEXT NOT NULL, account_id INTEGER NOT NULL, bot_id TEXT NOT NULL, source TEXT NOT NULL, symbol TEXT NOT NULL, side TEXT NOT NULL, volume REAL NOT NULL, open_price REAL NOT NULL DEFAULT 0, sl REAL, tp REAL, pnl REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'open', opened_at TEXT NOT NULL, closed_at TEXT);
+CREATE TABLE IF NOT EXISTS requests (id TEXT PRIMARY KEY, source TEXT NOT NULL, api_client_id TEXT, bot_id TEXT NOT NULL, action TEXT NOT NULL, payload TEXT NOT NULL, result TEXT, created_at TEXT NOT NULL);
+"
 
 # Linker fix cho Android/Termux
 export CC=clang
@@ -201,10 +235,18 @@ export RUSTFLAGS="-C linker=clang"
 
 echo -e "${YELLOW}Đang biên dịch (có thể mất 10-20 phút lần đầu)...${NC}"
 if cargo build --release -j 1; then
-    # Copy binary vào PATH
-    cp target/release/iztrade "$PREFIX/bin/iztrade" 2>/dev/null || \
-    cp target/release/iztrade "$HOME/.cargo/bin/iztrade" 2>/dev/null || true
-    chmod +x "${PREFIX:-$HOME/.cargo}/bin/iztrade" 2>/dev/null || true
+    # Cài đặt binary
+    if [ "$IS_TERMUX" = true ]; then
+        cp target/release/iztrade "$PREFIX/bin/iztrade" 2>/dev/null || true
+        chmod +x "$PREFIX/bin/iztrade" 2>/dev/null || true
+    else
+        mkdir -p "$HOME/.local/bin"
+        cp target/release/iztrade "$HOME/.local/bin/iztrade"
+        chmod +x "$HOME/.local/bin/iztrade"
+        echo -e "${YELLOW}Đã cài đặt binary vào $HOME/.local/bin/iztrade${NC}"
+        # Tạo symlink iz nếu chưa có
+        ln -sf "$HOME/.local/bin/iztrade" "$HOME/.local/bin/iz"
+    fi
 
     echo ""
     echo -e "${GREEN}${BOLD}✅ iZFx.Trade đã được cài đặt thành công!${NC}"

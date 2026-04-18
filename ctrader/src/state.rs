@@ -7,7 +7,7 @@ use chrono::Utc;
 
 use crate::config::Config;
 use crate::models::{Account, AccountType, Bot as TradingBot, Position, ApiClient, PriceQuote, default_mock_prices};
-use crate::ctrader::CtraderClient;
+use crate::ctrader::ConnectionPool;
 use crate::telegram::UserSession;
 
 /// Thống kê hệ thống cho lệnh /status
@@ -34,7 +34,7 @@ pub struct SystemStatus {
 pub struct AppState {
     pub config: Config,
     pub db: SqlitePool,
-    pub ctrader: Arc<CtraderClient>,
+    pub pool: Arc<ConnectionPool>,
     pub telegram_bot: Option<Arc<Bot>>,
     pub started_at: chrono::DateTime<Utc>,
 
@@ -49,14 +49,7 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(config: Config, db: SqlitePool) -> Arc<Self> {
-        let ctrader = Arc::new(CtraderClient::new(
-            config.ctrader_client_id.clone(),
-            config.ctrader_secret.clone(),
-            config.ctrader_host.clone(),
-            config.ctrader_port,
-            config.is_mock(),
-        ));
-
+        let pool = Arc::new(ConnectionPool::new());
         let telegram_bot = Some(Arc::new(Bot::new(&config.telegram_bot_token)));
 
         // Load từ DB
@@ -68,19 +61,17 @@ impl AppState {
         let accounts = RwLock::new(accounts_vec.into_iter().map(|a| (a.id, a)).collect());
         let bots = RwLock::new(bots_vec.into_iter().map(|b| (b.id.clone(), b)).collect());
         let positions = RwLock::new(positions_vec);
-        // Index bằng api_key để lookup nhanh trong auth middleware
         let api_clients = RwLock::new(clients_vec.into_iter().map(|c| (c.api_key.clone(), c)).collect());
 
-        // Seed mock prices cho tất cả symbol phổ biến
         let price_seed: HashMap<String, PriceQuote> = default_mock_prices()
             .into_iter()
             .map(|q| (q.symbol.clone(), q))
             .collect();
 
-        Arc::new(Self {
+        let state = Arc::new(Self {
             config,
             db,
-            ctrader,
+            pool,
             telegram_bot,
             started_at: Utc::now(),
             accounts,
@@ -89,7 +80,16 @@ impl AppState {
             api_clients,
             user_sessions: RwLock::new(HashMap::new()),
             prices: RwLock::new(price_seed),
-        })
+        });
+
+        // Tự động kết nối các account đã có (Mock/Live tùy thuộc vào ctrader_mode toàn cục)
+        let acc_ids: Vec<i64> = state.all_account_ids().await;
+        let is_mock = state.config.is_mock();
+        for id in acc_ids {
+            let _ = state.pool.connect_account(id, is_mock, state.clone()).await;
+        }
+
+        state
     }
 
     // ── User Session Management ───────────────────────────────────────────────
@@ -131,6 +131,14 @@ impl AppState {
         quotes
     }
 
+    /// Lấy tất cả bot
+    pub async fn all_bots(&self) -> Vec<TradingBot> {
+        let bots = self.bots.read().await;
+        let mut list: Vec<_> = bots.values().cloned().collect();
+        list.sort_by(|a, b| a.id.cmp(&b.id));
+        list
+    }
+
     pub fn is_admin(&self, user_id: i64) -> bool {
         self.config.is_admin(user_id)
     }
@@ -148,6 +156,17 @@ impl AppState {
         Ok(())
     }
 
+    pub async fn update_account_autotrade(&self, acc_id: i64, enabled: bool) -> anyhow::Result<bool> {
+        let mut accounts = self.accounts.write().await;
+        if let Some(acc) = accounts.get_mut(&acc_id) {
+            acc.autotrade = enabled;
+            crate::storage::update_account_autotrade(&self.db, acc_id, enabled).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     pub async fn set_bot_enabled(&self, bot_id: &str, enabled: bool) -> anyhow::Result<bool> {
         let mut bots = self.bots.write().await;
         if let Some(bot) = bots.get_mut(bot_id) {
@@ -157,6 +176,29 @@ impl AppState {
         } else {
             Ok(false)
         }
+    }
+
+    // ── Account Management ────────────────────────────────────────────────────
+
+    pub async fn add_account(&self, acc: Account) -> anyhow::Result<()> {
+        // 1. Lưu vào DB
+        crate::storage::upsert_account(&self.db, &acc).await?;
+        // 2. Cập nhật Memory
+        self.accounts.write().await.insert(acc.id, acc);
+        Ok(())
+    }
+
+    pub async fn delete_account(&self, acc_id: i64) -> anyhow::Result<bool> {
+        // 1. Check tồn tại
+        let exists = self.accounts.read().await.contains_key(&acc_id);
+        if !exists { return Ok(false); }
+
+        // 2. Xóa trong DB (Cần thêm hàm delete_account vào storage/db.rs)
+        crate::storage::delete_account(&self.db, acc_id).await?;
+        
+        // 3. Xóa trong Memory
+        self.accounts.write().await.remove(&acc_id);
+        Ok(true)
     }
 
     pub async fn add_position(&self, pos: Position) -> anyhow::Result<()> {
@@ -308,24 +350,25 @@ impl AppState {
 
     pub async fn format_bots_summary(&self) -> String {
         let bots = self.bots.read().await;
-        if bots.is_empty() { return "❌ Chưa có bot nào.".to_string(); }
-        let mut lines = vec![format!("🤖 *Bots* ({}/{})", bots.values().filter(|b| b.enabled).count(), bots.len())];
+        if bots.is_empty() { return "[ERROR] No bots available.".to_string(); }
+        let mut lines = vec![format!("Bots Status ({}/{})", bots.values().filter(|b| b.enabled).count(), bots.len())];
         for bot in bots.values() {
-            let st = if bot.enabled { "✅" } else { "⏸️" };
-            lines.push(format!("{} `{}` — {} | P&L: {:.2}", st, bot.id, bot.symbol, bot.daily_pnl));
+            let st = if bot.enabled { "[ACTIVE]" } else { "[DISABLED]" };
+            lines.push(format!("{} `{}` — {} | PNL: {:.2}", st, bot.id, bot.symbol, bot.daily_pnl));
         }
         lines.join("\n")
     }
 
     pub async fn format_accounts_summary(&self) -> String {
         let accounts = self.accounts.read().await;
-        if accounts.is_empty() { return "❌ Chưa có account.".to_string(); }
-        let mut lines = vec![format!("💼 *Accounts* ({})", accounts.len())];
+        if accounts.is_empty() { return "[ERROR] No accounts available.".to_string(); }
+        let mut lines = vec![format!("Accounts Status ({})", accounts.len())];
         for acc in accounts.values() {
-            let auto = if acc.autotrade { "🟢" } else { "🔴" };
+            let auto = if acc.autotrade { "[ON]" } else { "[OFF]" };
             let atype = if acc.is_real() { "REAL" } else { "DEMO" };
-            lines.push(format!("{} #{} {} [{}] | P&L: {:.2}", auto, acc.id, acc.name, atype, acc.daily_pnl));
+            lines.push(format!("{} #{} {} [{}] | PNL: {:.2}", auto, acc.id, acc.name, atype, acc.daily_pnl));
         }
         lines.join("\n")
     }
+
 }

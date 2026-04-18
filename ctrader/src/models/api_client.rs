@@ -33,14 +33,14 @@ impl ApiClient {
         }
     }
 
-    pub fn status_emoji(&self) -> &'static str {
-        if self.enabled { "🟢" } else { "🔴" }
+    pub fn status_text(&self) -> &'static str {
+        if self.enabled { "[ACTIVE]" } else { "[DISABLED]" }
     }
 
     pub fn format_list_item(&self) -> String {
         format!(
             "{} `{}` — *{}* ({})\n   🔑 `{}...`\n   📊 {} requests | {}",
-            self.status_emoji(),
+            self.status_text(),
             self.id[..8].to_string(),
             self.name,
             self.source,
@@ -55,9 +55,9 @@ impl ApiClient {
 
 /// Tạo API key ngẫu nhiên dạng `izt_xxxxxxxxxxxxxxxxxxxx`
 fn generate_api_key() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
+    use std::time::SystemTime;
+    let _ts = SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .subsec_nanos();
     format!("izt_{}", Uuid::new_v4().to_string().replace('-', "")[..24].to_string())

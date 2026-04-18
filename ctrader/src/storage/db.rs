@@ -39,6 +39,7 @@ async fn migrate(pool: &SqlitePool) -> Result<()> {
         CREATE TABLE IF NOT EXISTS bots (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
+            account_id INTEGER NOT NULL DEFAULT 0,
             enabled INTEGER NOT NULL DEFAULT 1,
             symbol TEXT NOT NULL DEFAULT 'XAUUSD',
             timeframe TEXT NOT NULL DEFAULT 'M15',
@@ -129,6 +130,12 @@ pub async fn get_accounts(pool: &SqlitePool) -> Result<Vec<Account>> {
 
 pub async fn upsert_account(pool: &SqlitePool, acc: &Account) -> Result<()> {
     let acc_type = if acc.account_type == AccountType::Real { "real" } else { "demo" };
+    let created_at = acc.created_at.to_rfc3339();
+    let acc_id = acc.id;
+    let b_acc_id = acc.broker_account_id;
+    let con = acc.connected as i64;
+    let auto = acc.autotrade as i64;
+
     sqlx::query!(
         r#"INSERT INTO accounts (id, name, broker_account_id, account_type, access_token,
            connected, autotrade, balance, equity, float_profit, daily_pnl,
@@ -142,19 +149,26 @@ pub async fn upsert_account(pool: &SqlitePool, acc: &Account) -> Result<()> {
            daily_pnl=excluded.daily_pnl,
            daily_target_profit=excluded.daily_target_profit,
            daily_max_loss=excluded.daily_max_loss"#,
-        acc.id, acc.name, acc.broker_account_id, acc_type,
-        acc.access_token, acc.connected as i64, acc.autotrade as i64,
+        acc_id, acc.name, b_acc_id, acc_type,
+        acc.access_token, con, auto,
         acc.balance, acc.equity, acc.float_profit, acc.daily_pnl,
         acc.daily_target_profit, acc.daily_max_loss,
-        acc.created_at.to_rfc3339(),
+        created_at,
     )
     .execute(pool)
     .await?;
     Ok(())
 }
 
+pub async fn delete_account(pool: &SqlitePool, id: i64) -> Result<()> {
+    sqlx::query!("DELETE FROM accounts WHERE id=?", id)
+        .execute(pool).await?;
+    Ok(())
+}
+
 pub async fn update_account_autotrade(pool: &SqlitePool, id: i64, autotrade: bool) -> Result<()> {
-    sqlx::query!("UPDATE accounts SET autotrade=? WHERE id=?", autotrade as i64, id)
+    let auto_val = autotrade as i64;
+    sqlx::query!("UPDATE accounts SET autotrade=? WHERE id=?", auto_val, id)
         .execute(pool).await?;
     Ok(())
 }
@@ -190,7 +204,7 @@ pub async fn get_api_clients(pool: &SqlitePool) -> Result<Vec<ApiClient>> {
     .await?;
 
     Ok(rows.into_iter().map(|r| ApiClient {
-        id: r.id,
+        id: r.id.unwrap_or_default(),
         name: r.name,
         api_key: r.api_key,
         source: r.source,
@@ -205,13 +219,20 @@ pub async fn get_api_clients(pool: &SqlitePool) -> Result<Vec<ApiClient>> {
 
 pub async fn insert_api_client(pool: &SqlitePool, client: &ApiClient) -> Result<()> {
     let allowed = serde_json::to_string(&client.allowed_actions)?;
+    let created_at = client.created_at.to_rfc3339();
+    let enabled_int = client.enabled as i64;
+    let c_id = client.id.clone();
+    let c_name = client.name.clone();
+    let c_key = client.api_key.clone();
+    let c_src = client.source.clone();
+
     sqlx::query!(
         r#"INSERT INTO api_clients
            (id, name, api_key, source, enabled, description, allowed_actions, request_count, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)"#,
-        client.id, client.name, client.api_key, client.source,
-        client.enabled as i64, client.description, allowed,
-        client.created_at.to_rfc3339(),
+        c_id, c_name, c_key, c_src,
+        enabled_int, client.description, allowed,
+        created_at,
     )
     .execute(pool).await?;
     Ok(())
@@ -224,7 +245,9 @@ pub async fn delete_api_client(pool: &SqlitePool, client_id: &str) -> Result<boo
 }
 
 pub async fn set_api_client_enabled(pool: &SqlitePool, client_id: &str, enabled: bool) -> Result<bool> {
-    let result = sqlx::query!("UPDATE api_clients SET enabled=? WHERE id=?", enabled as i64, client_id)
+    let c_id = client_id.to_string();
+    let enabled_int = enabled as i64;
+    let result = sqlx::query!("UPDATE api_clients SET enabled=? WHERE id=?", enabled_int, c_id)
         .execute(pool).await?;
     Ok(result.rows_affected() > 0)
 }
@@ -239,7 +262,7 @@ pub async fn find_api_client_by_key(pool: &SqlitePool, api_key: &str) -> Result<
     .fetch_optional(pool).await?;
 
     Ok(row.map(|r| ApiClient {
-        id: r.id,
+        id: r.id.unwrap_or_default(),
         name: r.name,
         api_key: r.api_key,
         source: r.source,
@@ -265,78 +288,109 @@ pub async fn increment_client_usage(pool: &SqlitePool, client_id: &str) -> Resul
 // ── Bot CRUD ─────────────────────────────────────────────────────────────────
 
 pub async fn get_bots(pool: &SqlitePool) -> Result<Vec<Bot>> {
-    let rows = sqlx::query!(
-        "SELECT id, name, enabled, symbol, timeframe, daily_target_profit,
+    let rows = sqlx::query(
+        "SELECT id, name, account_id, enabled, symbol, timeframe, daily_target_profit,
          daily_max_loss, daily_pnl, trade_count_today, created_at FROM bots"
     )
     .fetch_all(pool).await?;
 
+    use sqlx::Row;
     Ok(rows.into_iter().map(|r| Bot {
-        id: r.id, name: r.name, enabled: r.enabled != 0,
-        symbol: r.symbol, timeframe: r.timeframe,
-        daily_target_profit: r.daily_target_profit,
-        daily_max_loss: r.daily_max_loss, daily_pnl: r.daily_pnl,
-        trade_count_today: r.trade_count_today as i32,
-        created_at: r.created_at.parse().unwrap_or_else(|_| Utc::now()),
+        id: r.get::<Option<String>, _>("id").unwrap_or_default(), 
+        name: r.get("name"), 
+        account_id: r.get("account_id"),
+        enabled: r.get::<i64, _>("enabled") != 0,
+        symbol: r.get("symbol"), 
+        timeframe: r.get("timeframe"),
+        daily_target_profit: r.get("daily_target_profit"),
+        daily_max_loss: r.get("daily_max_loss"), 
+        daily_pnl: r.get("daily_pnl"),
+        trade_count_today: r.get::<i64, _>("trade_count_today") as i32,
+        created_at: r.get::<String, _>("created_at").parse().unwrap_or_else(|_| Utc::now()),
     }).collect())
 }
 
 pub async fn upsert_bot(pool: &SqlitePool, bot: &Bot) -> Result<()> {
-    sqlx::query!(
-        r#"INSERT INTO bots (id, name, enabled, symbol, timeframe,
+    let created_at = bot.created_at.to_rfc3339();
+    let con = bot.enabled as i64;
+    let b_id = bot.id.clone();
+    let b_name = bot.name.clone();
+    let b_acc = bot.account_id;
+    let b_sym = bot.symbol.clone();
+    let b_tf = bot.timeframe.clone();
+
+    sqlx::query(
+        r#"INSERT INTO bots (id, name, account_id, enabled, symbol, timeframe,
            daily_target_profit, daily_max_loss, daily_pnl, trade_count_today, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET
-           name=excluded.name, enabled=excluded.enabled,
+           name=excluded.name, account_id=excluded.account_id, enabled=excluded.enabled,
            symbol=excluded.symbol, timeframe=excluded.timeframe,
            daily_target_profit=excluded.daily_target_profit,
            daily_max_loss=excluded.daily_max_loss, daily_pnl=excluded.daily_pnl,
-           trade_count_today=excluded.trade_count_today"#,
-        bot.id, bot.name, bot.enabled as i64, bot.symbol, bot.timeframe,
-        bot.daily_target_profit, bot.daily_max_loss, bot.daily_pnl,
-        bot.trade_count_today, bot.created_at.to_rfc3339(),
+           trade_count_today=excluded.trade_count_today"#
     )
+    .bind(b_id).bind(b_name).bind(b_acc).bind(con).bind(b_sym).bind(b_tf)
+    .bind(bot.daily_target_profit).bind(bot.daily_max_loss).bind(bot.daily_pnl)
+    .bind(bot.trade_count_today as i64).bind(created_at)
     .execute(pool).await?;
     Ok(())
 }
 
 pub async fn set_bot_enabled(pool: &SqlitePool, bot_id: &str, enabled: bool) -> Result<bool> {
-    let result = sqlx::query!("UPDATE bots SET enabled=? WHERE id=?", enabled as i64, bot_id)
+    let auto_val = enabled as i64;
+    let result = sqlx::query!("UPDATE bots SET enabled=? WHERE id=?", auto_val, bot_id)
         .execute(pool).await?;
     Ok(result.rows_affected() > 0)
 }
 
 pub async fn get_bot(pool: &SqlitePool, bot_id: &str) -> Result<Option<Bot>> {
-    let row = sqlx::query!(
-        "SELECT id, name, enabled, symbol, timeframe, daily_target_profit,
-         daily_max_loss, daily_pnl, trade_count_today, created_at FROM bots WHERE id=?",
-        bot_id
+    let row = sqlx::query(
+        "SELECT id, name, account_id, enabled, symbol, timeframe, daily_target_profit,
+         daily_max_loss, daily_pnl, trade_count_today, created_at FROM bots WHERE id=?"
     )
+    .bind(bot_id)
     .fetch_optional(pool).await?;
 
+    use sqlx::Row;
     Ok(row.map(|r| Bot {
-        id: r.id, name: r.name, enabled: r.enabled != 0,
-        symbol: r.symbol, timeframe: r.timeframe,
-        daily_target_profit: r.daily_target_profit,
-        daily_max_loss: r.daily_max_loss, daily_pnl: r.daily_pnl,
-        trade_count_today: r.trade_count_today as i32,
-        created_at: r.created_at.parse().unwrap_or_else(|_| Utc::now()),
+        id: r.get::<Option<String>, _>("id").unwrap_or_default(), 
+        name: r.get("name"), 
+        account_id: r.get("account_id"),
+        enabled: r.get::<i64, _>("enabled") != 0,
+        symbol: r.get("symbol"), 
+        timeframe: r.get("timeframe"),
+        daily_target_profit: r.get("daily_target_profit"),
+        daily_max_loss: r.get("daily_max_loss"), 
+        daily_pnl: r.get("daily_pnl"),
+        trade_count_today: r.get::<i64, _>("trade_count_today") as i32,
+        created_at: r.get::<String, _>("created_at").parse().unwrap_or_else(|_| Utc::now()),
     }))
 }
 
 // ── Position CRUD ─────────────────────────────────────────────────────────────
 
 pub async fn save_position(pool: &SqlitePool, pos: &Position) -> Result<()> {
+    let opened_at = pos.opened_at.to_rfc3339();
+    let closed_at = pos.closed_at.map(|d| d.to_rfc3339());
+    let p_id = pos.id.clone();
+    let o_id = pos.order_id.clone();
+    let b_id = pos.bot_id.clone();
+    let src = pos.source.clone();
+    let sym = pos.symbol.clone();
+    let side = pos.side.clone();
+    let status = pos.status.to_string();
+
     sqlx::query!(
         r#"INSERT INTO positions
            (id, order_id, account_id, bot_id, source, symbol, side, volume,
             open_price, sl, tp, pnl, status, opened_at, closed_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
-        pos.id, pos.order_id, pos.account_id, pos.bot_id, pos.source,
-        pos.symbol, pos.side, pos.volume, pos.open_price,
-        pos.sl, pos.tp, pos.pnl, pos.status.to_string(),
-        pos.opened_at.to_rfc3339(),
-        pos.closed_at.map(|d| d.to_rfc3339()),
+        p_id, o_id, pos.account_id, b_id, src,
+        sym, side, pos.volume, pos.open_price,
+        pos.sl, pos.tp, pos.pnl, status,
+        opened_at,
+        closed_at,
     )
     .execute(pool).await?;
     Ok(())
@@ -351,9 +405,15 @@ pub async fn get_open_positions(pool: &SqlitePool) -> Result<Vec<Position>> {
     .fetch_all(pool).await?;
 
     Ok(rows.into_iter().map(|r| Position {
-        id: r.id, order_id: r.order_id, account_id: r.account_id,
-        bot_id: r.bot_id, source: r.source, symbol: r.symbol,
-        side: r.side, volume: r.volume, open_price: r.open_price,
+        id: r.id.unwrap_or_default(), 
+        order_id: r.order_id, 
+        account_id: r.account_id,
+        bot_id: r.bot_id, 
+        source: r.source, 
+        symbol: r.symbol,
+        side: r.side, 
+        volume: r.volume, 
+        open_price: r.open_price,
         sl: r.sl, tp: r.tp, pnl: r.pnl,
         status: PositionStatus::Open,
         opened_at: r.opened_at.parse().unwrap_or_else(|_| Utc::now()),
@@ -368,6 +428,22 @@ pub async fn close_positions_by_bot(pool: &SqlitePool, bot_id: &str) -> Result<i
         now, bot_id,
     )
     .execute(pool).await?;
+    Ok(result.rows_affected() as i64)
+}
+
+pub async fn close_positions_by_pnl(pool: &SqlitePool, bot_id: &str, is_profit: bool) -> Result<i64> {
+    let now = Utc::now().to_rfc3339();
+    let sql = if is_profit {
+        "UPDATE positions SET status='closed', closed_at=? WHERE bot_id=? AND status='open' AND pnl > 0"
+    } else {
+        "UPDATE positions SET status='closed', closed_at=? WHERE bot_id=? AND status='open' AND pnl <= 0"
+    };
+    
+    let result = sqlx::query(sql)
+        .bind(now)
+        .bind(bot_id)
+        .execute(pool).await?;
+        
     Ok(result.rows_affected() as i64)
 }
 

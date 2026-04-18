@@ -32,3 +32,18 @@ finalconfig.toml
 oldconfig.toml
 newconfig.toml
 wrangler.toml
+
+# Rust
+**/target/
+Cargo.lock
+
+# Databases
+*.db
+*.db-journal
+
+# Python
+__pycache__/
+*.pyc
+
+# Scripts
+ctrader/p

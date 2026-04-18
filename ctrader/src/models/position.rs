@@ -41,12 +41,12 @@ impl std::fmt::Display for PositionStatus {
 impl Position {
     pub fn format_telegram(&self) -> String {
         format!(
-            "📊 *{}* | {}\n\
-            💼 Bot: `{}`\n\
-            📈 {} {} @ {:.5}\n\
-            💰 Volume: {:.2}\n\
-            🎯 SL: {} | TP: {}\n\
-            ⏰ {}",
+            "*{}* | {}\n\
+            Bot: `{}`\n\
+            Action: {} {} @ {:.5}\n\
+            Volume: {:.2}\n\
+            SL: {} | TP: {}\n\
+            Time: {}",
             self.symbol,
             self.source,
             self.bot_id,

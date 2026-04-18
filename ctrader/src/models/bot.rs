@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 pub struct Bot {
     pub id: String,         // Unique id, ex: "gold_scalper"
     pub name: String,       // Display name
+    pub account_id: i64,    // Owner account
     pub enabled: bool,
     pub symbol: String,     // ex: "XAUUSD"
     pub timeframe: String,  // ex: "M15"
@@ -16,10 +17,11 @@ pub struct Bot {
 }
 
 impl Bot {
-    pub fn new(id: String, name: String, symbol: String) -> Self {
+    pub fn new(id: String, name: String, account_id: i64, symbol: String) -> Self {
         Self {
             id,
             name,
+            account_id,
             enabled: true,
             symbol,
             timeframe: "M15".to_string(),

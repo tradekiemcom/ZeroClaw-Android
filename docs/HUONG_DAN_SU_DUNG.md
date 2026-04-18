@@ -204,3 +204,30 @@ Hoặc trong Telegram chat với ZeroClaw:
 ```
 Lấy giá vàng hiện tại từ http://localhost:8080/api/prices/XAUUSD
 ```
+
+## 🖥️ 9. iZ-Console (Trình Quản Trị Đa Tài Khoản Trên CLI)
+
+Hệ thống cung cấp một Terminal cực kỳ mạnh mẽ (v2.1) hỗ trợ **Context Scopes**, cho phép quản lý hàng trăm tài khoản 1 cách nhanh chóng. Để truy cập, chạy file nhị phân trực tiếp (ví dụ: `cargo run` trong thư mục ctrader hoặc lệnh chạy daemon trên Termux).
+
+### Cấu trúc 2 Tầng Lệnh:
+
+**1. Tầng Toàn Cục (Global Scope - `iz >`)**
+- `l` hoặc `list`: Hiển thị danh sách tóm tắt toàn bộ các tài khoản cTrader liên kết, bao gồm số dư và trạng thái Bot.
+- `r` hoặc `report`: Báo cáo hệ thống tổng quát (tổng vốn, lợi nhuận, số lượng API Key, thời gian Uptime).
+- `acc add [Name] [cT_ID] [Broker] [Type]`: Thêm một tài khoản mới vào cơ sở dữ liệu.
+- `api list` / `api add [Name]`: Quản lý cấp nguồn API Key cho ứng dụng thứ ba.
+- `<ACCOUNT_ID>` (Ví dụ: `101`): Gõ ID tài khoản để **chuyển vào Tầng Tài Khoản (Account Scope)** dành riêng cho tài khoản đó.
+- `a` / `d` / `c`: Các lệnh shortcut khẩn cấp áp dụng bật/tắt (Auto/Disable) cho **TOÀN BỘ** tài khoản trên app.
+
+**2. Tầng Tài Khoản (Account Scope - `iz[101] >`)**
+Khi bạn đã chui vào trong 1 tài khoản cụ thể, toàn bộ lệnh bạn gõ sẽ chỉ tác động lên duy nhất account đó.
+- `a` (Bật autotrade) / `d` (Tắt autotrade).
+- `c`: Khẩn cấp - Hủy/Đóng CẮT TOÀN BỘ lệnh/position ở tài khoản này và lập tức vô hiệu hóa.
+- `p`: Danh sách lệnh đang mở (Positions) của tài khoản này.
+- **Thực thi giao dịch mạng lưới (Grid) trực tiếp:**
+  ```bash
+  #BUY XAUUSD 0.01 Tp: 2450 Sl: 2320 Grib: 5 Step: 500
+  ```
+- Lệnh `#SELL`, `#BUYLIMIT` tương tự như trên Telegram. Các tham số như `Grib`, `Step`, `Xlot`, `Life` được hỗ trợ tự động đan lưới.
+- `top`, `back`, `..`: Sẽ giúp bạn thoát ra lại Tầng Toàn Cục (Global).
+- `clear` / `cls`: Dọn dẹp/Clear màn hình console.
