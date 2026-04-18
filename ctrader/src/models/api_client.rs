@@ -39,7 +39,7 @@ impl ApiClient {
 
     pub fn format_list_item(&self) -> String {
         format!(
-            "{} `{}` — *{}* ({})\n   🔑 `{}...`\n   📊 {} requests | {}",
+            "{} `{}` - {} ({})\n   KEY: {}...\n   STATS: {} requests | {}",
             self.status_text(),
             self.id[..8].to_string(),
             self.name,

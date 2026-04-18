@@ -8,13 +8,13 @@
 
 ## 1. Đánh Giá Cấu Trúc Hiện Tại (Audit)
 
-### 📊 Điểm Sáng
+### [HIGHLIGHTS]
 -   **Kiến trúc Đa Nguồn (Multi-Source)**: Hệ thống đã tách biệt rõ ràng các nguồn nhận lệnh (Telegram, HTTP API, và Command Line Interface).
 -   **Quản Lý State (AppState)**: Sử dụng `Arc<AppState>` kết hợp `RwLock` cho phép truy cập an toàn từ nhiều luồng. Đã tích hợp hệ thống báo cáo (Reporting) và bộ nhớ in-memory có đồng bộ tĩnh cho Account/API Key.
 -   **Tầng Storage Hoàn Thiện**: Các lỗi liên quan đến trình mượn biến trong Rust (Borrow Checker) và Data Mapping (kiểu `Option<String>` so với kiểu `String`) trong `sqlx` đã được xử lý triệt để tại `storage/db.rs`. Toàn bộ chức năng thao tác Database đều ổn định.
 -   **CLI v2.1 Hiện Đại (Context-Aware)**: Đã thiết kế thành công Console thao tác CLI chia làm 2 tầng (Global Scope và Account Scope). Toàn bộ sức mạnh và độ chi tiết của trình phiên dịch cú pháp (IzParser) giờ đây đã áp dụng mượt mà từ Telegram sang CLI.
 
-### ⚠️ Các Vấn Đề Cần Giải Quyết 
+### [ISSUES] Issues to Resolve
 -   **Hợp Nhất Socket Mạng (Multiplexing)**: Hiện tại app vẫn làm hình nộm (Mock Mode) hoặc 1-core Account connection. Nó cần một Pool kết nối có khả năng chứa và duy trì PING (heartbeat) cho hàng trăm phiên TCP (TLS) độc lập cho các account khác nhau (Multi-Account Multi-Connect).
 -   **Cơ Chế Live Feed Cục Bộ**: Chuyển đổi từ `mock_prices` sang luồng tin (stream) thực tế dựa trên tin nhắn `ProtoOASpotEvent`.
 

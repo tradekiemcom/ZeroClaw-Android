@@ -73,13 +73,13 @@ async fn main() -> Result<()> {
     if let Some(cmd) = &cli.command {
         match cmd {
             Commands::Up => {
-                println!("🚀 Starting iZFx.Trade in background...");
+                println!("[STARTUP] Starting iZFx.Trade in background...");
                 // Note: Thực tế trên Android/Termux có thể dùng nohup hoặc pm2
                 // Ở đây ta mô phỏng bằng cách in hướng dẫn hoặc xử lý PID
                 return Ok(());
             }
             Commands::Down => {
-                println!("🛑 Stopping iZFx.Trade...");
+                println!("[SHUTDOWN] Stopping iZFx.Trade...");
                 return Ok(());
             }
             _ => {}
@@ -117,13 +117,13 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         match tokio::net::TcpListener::bind(addr).await {
             Ok(listener) => {
-                info!("🌐 REST API listening on http://{}", addr);
+                info!("[REST] REST API listening on http://{}", addr);
                 if let Err(e) = axum::serve(listener, router).await {
                     error!("REST API service error: {}", e);
                 }
             }
             Err(e) => {
-                error!("❌ Failed to bind REST API to {}: {}. Is another instance running?", addr, e);
+                error!("[ERROR] Failed to bind REST API to {}: {}. Is another instance running?", addr, e);
             }
         }
     });
@@ -152,7 +152,7 @@ async fn main() -> Result<()> {
         error!("Console error: {}", e);
     }
 
-    info!("👋 iZFx.Trade stopped.");
+    info!("[INFO] iZFx.Trade stopped.");
     Ok(())
 }
 
@@ -164,7 +164,7 @@ async fn handle_direct_commands(cli: &Cli, state: Arc<state::AppState>) -> Resul
 
     if cli.report { 
         let accounts = state.accounts.read().await;
-        let mut report = "📊 GLOBAL REPORT\n".to_string();
+        let mut report = "[GLOBAL REPORT]\n".to_string();
         for (_, acc) in accounts.iter() {
             report.push_str(&format!("Acc {}: PNL {:.2} | Equity {:.2}\n", acc.id, acc.daily_pnl, acc.equity));
         }
@@ -173,7 +173,7 @@ async fn handle_direct_commands(cli: &Cli, state: Arc<state::AppState>) -> Resul
     
     if cli.positions {
         let positions = state.positions.read().await;
-        let mut list = "📦 OPEN POSITIONS\n".to_string();
+        let mut list = "[OPEN POSITIONS]\n".to_string();
         for pos in positions.iter().filter(|p| p.status == crate::models::PositionStatus::Open) {
             list.push_str(&format!("[{}] {} {} {:.2} @ {:.5}\n", pos.account_id, pos.side, pos.symbol, pos.volume, pos.open_price));
         }
@@ -182,7 +182,7 @@ async fn handle_direct_commands(cli: &Cli, state: Arc<state::AppState>) -> Resul
 
     if cli.accounts {
         let accounts = state.accounts.read().await;
-        let mut list = "🏦 ACCOUNTS\n".to_string();
+        let mut list = "[ACCOUNTS]\n".to_string();
         for (_, acc) in accounts.iter() {
             list.push_str(&format!("[{}] {} {:?} | PNL: {:.2}\n", acc.id, acc.name, acc.account_type, acc.daily_pnl));
         }

@@ -60,6 +60,23 @@ pub enum OrderAction {
     ListAccounts,
     ListPositions,
     ListPending,
+
+    // NEW: System & Admin Management
+    AddAccount,
+    DeleteAccount,
+    UpdateAccount,
+    AddApiClient,
+    DeleteApiClient,
+    ListApiClients,
+    SystemStatus,
+    SystemCleanup,
+    SystemNuclearWipe,
+    AccountReport,
+    BotReport,
+    ListGrouped,
+    CloseBotPositions,
+    AgentOn,
+    AgentOff,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

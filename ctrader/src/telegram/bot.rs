@@ -40,21 +40,17 @@ pub async fn run_telegram_bot(state: Arc<AppState>) {
         }
     }
 
-    // Set Menu Commands (No Icons - Pro)
+    // Set Menu Commands (Pro Commands)
     let commands = vec![
-        BotCommand::new("start", "Home / Menu"),
+        BotCommand::new("start", "Home / Dashboard"),
         BotCommand::new("list", "Account List"),
         BotCommand::new("status", "System Status"),
-        BotCommand::new("bots", "Bots Management"),
         BotCommand::new("positions", "Positions"),
-        BotCommand::new("pending", "Pending Orders"),
+        BotCommand::new("bots", "Bots Management"),
         BotCommand::new("report", "Trading Report"),
         BotCommand::new("a", "AutoTrade ON"),
         BotCommand::new("d", "AutoTrade OFF"),
-        BotCommand::new("on", "Enable Bot [id]"),
-        BotCommand::new("off", "Disable Bot [id]"),
         BotCommand::new("key", "API Keys"),
-        BotCommand::new("top", "App Scope"),
         BotCommand::new("help", "User Guide"),
     ];
     let _ = bot.set_my_commands(commands).await;
@@ -110,31 +106,59 @@ async fn handle_text_input(
     mut session: UserSession,
     state: Arc<AppState>,
 ) -> Result<()> {
-    // ── 1. Check if it's a # trading command ────────────────────────────
-    if text.starts_with('#') {
-        if let Some(mut req) = IzParser::parse(text, TradeSource::Telegram) {
-            // Apply current session scope
-            if !session.is_app_scope() {
-                req.account_scope = crate::models::AccountScope::Single;
-                req.account_ids = session.account_id.into_iter().collect();
-            }
-            
-            let res = crate::engine::dispatch(state.clone(), req).await?;
-            send_trade_reply(bot, msg.chat.id, &session, &res.messages.join("\n")).await?;
-            return Ok(());
+    // ── 1. Unified Command Dispatch ─────────────────────────────────────
+    // This handles #BUY, /list, /a, /d, and plain text like "pos", "status"
+    if let Some(mut req) = IzParser::parse(text, TradeSource::Telegram) {
+        // Apply session scope
+        if !session.is_app_scope() {
+            req.account_scope = crate::models::AccountScope::Single;
+            req.account_ids = session.account_id.into_iter().collect();
         }
+
+        // Special handling for navigation commands that also trigger views
+        match req.action {
+            OrderAction::ListAccounts => {
+                handle_list_accounts(bot, msg.chat.id, &session, &state).await?;
+                return Ok(());
+            }
+            OrderAction::ListPositions | OrderAction::ListGrouped => {
+                handle_grouped_positions(bot, msg.chat.id, user_id, &session, &state).await?;
+                return Ok(());
+            }
+            OrderAction::BotReport => {
+                handle_bot_report(bot, msg.chat.id, &session, &state).await?;
+                return Ok(());
+            }
+            OrderAction::SystemStatus => {
+                send_app_home(bot, msg.chat.id, &session, state.clone()).await?;
+                return Ok(());
+            }
+            _ => {}
+        }
+
+        let res = crate::engine::dispatch(state.clone(), req).await?;
+        send_trade_reply(bot, msg.chat.id, &session, &res.messages.join("\n")).await?;
+        return Ok(());
     }
 
+    // ── 2. Navigation & UI Specific Commands (Button Labels) ───────────────
     let badge_text = session.scope_badge().replace('*', "").replace('\\', "");
-    let text_to_match = if text.contains(&badge_text) { 
-        "🔄 refresh" 
+    let text_to_match = if text.to_lowercase().contains("refresh") { 
+        "refresh" 
     } else { 
-        text 
+        match text {
+            "App Dashboard" | "Top" | "APP Scope" => "/start",
+            "Agent ON" => "/agent on",
+            "Agent OFF" => "/agent off",
+            "Summary" => "/status",
+            "Bot Perf" => "/rb",
+            "Grouped Pos" | "Positions" => "/r",
+            _ => text
+        }
     };
 
-    // ── 2. Navigation & Direct Commands ──────────────────────────────────
     match text_to_match {
-        "/start" | "Top" | "APP Scope" => {
+        "/start" => {
             session.set_app_scope();
             state.set_user_session(user_id, session.clone()).await;
             send_app_home(bot, msg.chat.id, &session, state.clone()).await?;
@@ -151,42 +175,6 @@ async fn handle_text_input(
         "/help" | "Help" => {
             send_trade_reply(bot, msg.chat.id, &session, &help_text()).await?;
             return Ok(());
-        }
-        _ => {}
-    }
-
-    // ── 3. Action commands ──────────────────────────────────────────
-    let parts: Vec<&str> = text_to_match.split_whitespace().collect();
-    let cmd = parts[0].to_lowercase();
-    match cmd.as_str() {
-        "Refresh" | "🔄 refresh" => {
-            match session.current_view {
-                CurrentView::Positions => handle_positions(bot, msg.chat.id, user_id, &session, &state).await?,
-                CurrentView::Bots => handle_bots(bot, msg.chat.id, &session, &state).await?,
-                CurrentView::Report => handle_report_display(bot, msg.chat.id, session.account_id, None, &session, &state).await?,
-                CurrentView::Pending => handle_pending(bot, msg.chat.id, &session, &state).await?,
-                _ => {
-                    if session.is_app_scope() {
-                        send_app_home(bot, msg.chat.id, &session, state.clone()).await?;
-                    } else {
-                        handle_account_info(bot, msg.chat.id, &session, &state).await?;
-                    }
-                }
-            }
-        }
-
-        // Mapping cho bàn phím 3x3
-        "Top" | "APP Scope" => {
-            session.set_app_scope();
-            state.set_user_session(user_id, session.clone()).await;
-            send_app_home(bot, msg.chat.id, &session, state.clone()).await?;
-        }
-        "Back" => {
-            if !session.is_app_scope() {
-                session.set_app_scope();
-                state.set_user_session(user_id, session.clone()).await;
-                send_app_home(bot, msg.chat.id, &session, state.clone()).await?;
-            }
         }
         "Positions" => {
             handle_positions(bot, msg.chat.id, user_id, &session, &state).await?;
@@ -209,13 +197,45 @@ async fn handle_text_input(
         "Accounts" | "App Info" => {
             handle_list_accounts(bot, msg.chat.id, &session, &state).await?;
         }
-
-        _ if text_to_match.starts_with("Acc #") && text_to_match.ends_with(" Info") => {
+        _ if text.starts_with("Acc #") && text.ends_with(" Info") => {
             handle_account_info(bot, msg.chat.id, &session, &state).await?;
         }
-
         _ => {
-            send_error(bot, msg.chat.id, &format!("Unknown command: `{}`\nUse /help for list.", escape_md(&cmd)), &session).await?;
+            // ── 3. AI Agent Fallback (Natural Language) ───────────────
+            if text.len() > 3 {
+                let mut agent = state.ai_agent.lock().await;
+                if !agent.is_loaded() {
+                    bot.send_message(msg.chat.id, "AI is currently OFF. Use `/agent on` to activate NLP features.").await?;
+                    return Ok(());
+                }
+
+                let thinking_msg = bot.send_message(msg.chat.id, "*AI is thinking...*")
+                    .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+                    .await?;
+
+                let res = agent.process_natural_language(text, state.clone()).await;
+
+                // Delete thinking message
+                let _ = bot.delete_message(msg.chat.id, thinking_msg.id).await;
+
+                match res {
+                    Ok(Some(mut req)) => {
+                        if !session.is_app_scope() {
+                            req.account_scope = crate::models::AccountScope::Single;
+                            req.account_ids = session.account_id.into_iter().collect();
+                        }
+                        let dispatch_res = crate::engine::dispatch(state.clone(), req).await?;
+                        send_trade_reply(bot, msg.chat.id, &session, &dispatch_res.messages.join("\n")).await?;
+                    }
+                    Ok(None) => {
+                        bot.send_message(msg.chat.id, "I can't process this request.").await?;
+                    }
+                    Err(e) => {
+                        bot.send_message(msg.chat.id, format!("AI Error: {}", e)).await?;
+                    }
+                }
+                return Ok(());
+            }
         }
     }
 
@@ -259,7 +279,7 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
             return Ok(());
         }
         ["cancel"] => {
-            edit_or_send(&bot, &q, "Đã hủy thao tác.").await?;
+            edit_or_send(&bot, &q, "[ERROR] Callback unknown.").await?;
             return Ok(());
         }
 
@@ -427,7 +447,7 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, state: Arc<AppState>) -> R
 /// App home screen
 async fn send_app_home(bot: &Bot, chat_id: ChatId, session: &UserSession, state: Arc<AppState>) -> Result<()> {
     let status = format_status(&state).await;
-    let text = escape_md(&format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", session.scope_badge(), status));
+    let text = escape_md(&format!("{}\n--------------------\n{}", session.scope_badge(), status));
     
     let sent = bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
@@ -451,7 +471,7 @@ async fn handle_list_accounts(
     drop(accounts);
 
     let scope = session.scope_badge();
-    let mut content = "*Accounts List*\n━━━━━━━━━━━━━━━━━━━━\n".to_string();
+    let mut content = "*Accounts List*\n--------------------\n".to_string();
 
     if acc_list.is_empty() {
         content.push_str("No accounts found.\nUse `/account add` to add one.");
@@ -460,7 +480,7 @@ async fn handle_list_accounts(
             let atype = if acc.is_real() { "REAL" } else { "DEMO" };
             let auto = if acc.autotrade { "[ON]" } else { "[OFF]" };
             content.push_str(&format!(
-                "{} #{} {} [{}]\n   Bal: ${:.2} | Eq: ${:.2} | P&L: {:+.2}\n",
+                "{} Account #{} {} [{}]\n   Bal: ${:.2} | Eq: ${:.2} | P&L: {:+.2}\n",
                 auto, acc.id, escape_md(&acc.name), atype,
                 acc.balance, acc.equity, acc.daily_pnl
             ));
@@ -469,7 +489,7 @@ async fn handle_list_accounts(
     }
 
     let inline_kb = keyboards::accounts_list_keyboard(&acc_list);
-    let text = format!("{}\n━━━━━━━━━━━━━━━━━━━━\n{}", scope, content);
+    let text = format!("{}\n--------------------\n{}", scope, content);
 
     bot.send_message(chat_id, text)
         .parse_mode(ParseMode::MarkdownV2)
@@ -578,6 +598,58 @@ async fn handle_account_info_by_id(
 }
 
 /// View Handlers ─────────────────────────────────────────────────────────────
+
+async fn handle_grouped_positions(
+    bot: &Bot,
+    chat_id: ChatId,
+    _user_id: i64,
+    session: &UserSession,
+    state: &Arc<AppState>,
+) -> Result<()> {
+    let acc_ids = if session.is_app_scope() { vec![] } else { session.account_id.into_iter().collect() };
+    let by_bot = !session.is_app_scope();
+    
+    let grouped = state.get_grouped_positions(&acc_ids, by_bot).await;
+    
+    if grouped.is_empty() {
+        return send_trade_reply(bot, chat_id, session, "[INFO] No open positions found.").await;
+    }
+
+    let mut message = format!("[OPEN POSITIONS] (Grouped by {})\n", if by_bot { "Bot" } else { "Account" });
+    message.push_str("----------------------------------------\n");
+
+    for (group_id, pos_list) in grouped {
+        let total_pnl: f64 = pos_list.iter().map(|p| p.pnl).sum();
+        message.push_str(&format!("\nGroup *{}*: {} items | Profit: *${:+.2}*\n", group_id, pos_list.len(), total_pnl));
+        for p in pos_list.iter().take(5) {
+            message.push_str(&format!("  - {} {} {} @ {} | *${:+.2}*\n", p.side, p.symbol, p.volume, p.open_price, p.pnl));
+        }
+        if pos_list.len() > 5 {
+            message.push_str(&format!("  ...and {} more\n", pos_list.len() - 5));
+        }
+    }
+
+    send_trade_reply(bot, chat_id, session, &message).await
+}
+
+async fn handle_bot_report(
+    bot: &Bot,
+    chat_id: ChatId,
+    session: &UserSession,
+    state: &Arc<AppState>,
+) -> Result<()> {
+    let bots = state.all_bots().await;
+    let mut message = "*BOT PERFORMANCE REPORT*\n".to_string();
+    message.push_str("----------------------------------------\n");
+
+    for bot_info in bots {
+        let st = if bot_info.enabled { "[ON]" } else { "[OFF]" };
+        message.push_str(&format!("{} {} ({}) | P&L: *${:+.2}* | Trades: {}\n", 
+            st, bot_info.id, bot_info.symbol, bot_info.daily_pnl, bot_info.trade_count_today));
+    }
+
+    send_trade_reply(bot, chat_id, session, &message).await
+}
 
 async fn handle_positions(
     bot: &Bot, chat_id: ChatId, user_id: i64,

@@ -29,7 +29,7 @@ impl ConnectionPool {
         let session = AccountSession::new(account_id, is_mock, state);
         sessions.insert(account_id, session);
         
-        info!("💠 Account {} added to ConnectionPool (Mock: {})", account_id, is_mock);
+        info!("[POOL] Account {} added to ConnectionPool (Mock: {})", account_id, is_mock);
         Ok(())
     }
 
@@ -38,7 +38,7 @@ impl ConnectionPool {
         let mut sessions = self.sessions.write().await;
         if let Some(session) = sessions.remove(&account_id) {
             session.send_command(SessionCommand::Disconnect).await?;
-            info!("💠 Account {} removed from ConnectionPool", account_id);
+            info!("[POOL] Account {} removed from ConnectionPool", account_id);
         }
         Ok(())
     }
@@ -52,7 +52,7 @@ impl ConnectionPool {
             let res = rx.await.map_err(|_| anyhow::anyhow!("Session {} dropped result channel", account_id))?;
             Ok(res)
         } else {
-            error!("❌ Cannot execute order: No active session for account {}", account_id);
+            error!("[ERROR] Cannot execute order: No active session for account {}", account_id);
             anyhow::bail!("No active session for account {}", account_id)
         }
     }
@@ -86,7 +86,7 @@ impl ConnectionPool {
         let is_mock = state.config.is_mock();
         for acc in accounts {
             if let Err(e) = self.connect_account(acc.id, is_mock, state.clone()).await {
-                error!("❌ Failed to connect account {}: {}", acc.id, e);
+                error!("[ERROR] Failed to connect account {}: {}", acc.id, e);
             }
         }
         Ok(())

@@ -45,6 +45,7 @@ pub struct AppState {
     pub api_clients: RwLock<HashMap<String, ApiClient>>, // key = api_key string
     pub user_sessions: RwLock<HashMap<i64, UserSession>>, // key = telegram user_id
     pub prices: RwLock<HashMap<String, PriceQuote>>,     // key = symbol (uppercase)
+    pub ai_agent: tokio::sync::Mutex<crate::agent::AiAgent>,
 }
 
 impl AppState {
@@ -80,6 +81,7 @@ impl AppState {
             api_clients,
             user_sessions: RwLock::new(HashMap::new()),
             prices: RwLock::new(price_seed),
+            ai_agent: tokio::sync::Mutex::new(crate::agent::AiAgent::new()),
         });
 
         // Tự động kết nối các account đã có (Mock/Live tùy thuộc vào ctrader_mode toàn cục)
@@ -221,6 +223,28 @@ impl AppState {
             .filter(|p| p.bot_id == bot_id && p.status == crate::models::PositionStatus::Open)
             .cloned()
             .collect()
+    }
+
+    pub async fn get_grouped_positions(&self, account_ids: &[i64], by_bot: bool) -> HashMap<String, Vec<Position>> {
+        let positions = self.positions.read().await;
+        let mut grouped = HashMap::new();
+        
+        for p in positions.iter().filter(|p| p.status == crate::models::PositionStatus::Open) {
+            if !account_ids.is_empty() && !account_ids.contains(&p.account_id) { continue; }
+            
+            let key = if by_bot { p.bot_id.clone() } else { p.account_id.to_string() };
+            grouped.entry(key).or_insert_with(Vec::new).push(p.clone());
+        }
+        grouped
+    }
+
+    pub async fn get_grouped_pending(&self, _account_ids: &[i64], _by_bot: bool) -> HashMap<String, Vec<Position>> {
+        // Pending logic might be in a different storage or status in this codebase
+        // For now, let's assume we filter by a 'Pending' status if it exists, 
+        // OR we return empty if not implemented yet. 
+        // Based on PositionStatus, we only have Open/Closed/Cancelled. 
+        // If there's no Pending model yet, we'll return empty for now.
+        HashMap::new()
     }
 
     // ── System Status (cho /status) ───────────────────────────────────────────

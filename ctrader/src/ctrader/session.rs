@@ -61,7 +61,7 @@ impl AccountSession {
 
     /// Vòng lặp xử lý chính
     async fn run_loop(&self, mut cmd_rx: mpsc::Receiver<SessionCommand>, state: Arc<AppState>) {
-        info!("🚀 Session {} started (Mock: {})", self.account_id, self.is_mock);
+        info!("[START] Session {} started (Mock: {})", self.account_id, self.is_mock);
         
         *self.status.write().await = SessionStatus::Connected;
 
@@ -72,7 +72,7 @@ impl AccountSession {
         }
 
         *self.status.write().await = SessionStatus::Disconnected;
-        info!("🛑 Session {} stopped", self.account_id);
+        info!("[STOP] Session {} stopped", self.account_id);
     }
 
     /// Vòng lặp cho chế độ Mock
@@ -152,7 +152,7 @@ impl AccountSession {
 
     /// Vòng lặp cho chế độ Live
     async fn run_live_loop(&self, mut cmd_rx: mpsc::Receiver<SessionCommand>, state: Arc<AppState>) {
-        info!("🔗 [LIVE-{}] Running with cTrader Spotware API integration", self.account_id);
+        info!("[LIVE-{}] Running with cTrader Spotware API integration", self.account_id);
         
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
         let client = reqwest::Client::new();
@@ -165,7 +165,7 @@ impl AccountSession {
                 
                 _ = interval.tick() => {
                     if let Err(e) = self.sync_account_data(&client, &state).await {
-                        error!("❌ [LIVE-{}] Sync error: {}", self.account_id, e);
+                        error!("[ERROR] [LIVE-{}] Sync error: {}", self.account_id, e);
                     }
                 }
             }

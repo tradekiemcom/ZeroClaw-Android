@@ -10,27 +10,32 @@ use crate::models::{Account, Bot};
 pub fn main_reply_keyboard(acc_id: Option<i64>) -> KeyboardMarkup {
     let first_btn = match acc_id {
         Some(id) => format!("Acc #{} Info", id),
-        None => "App Info".to_string(),
+        None => "App Dashboard".to_string(),
     };
 
     KeyboardMarkup::new(vec![
-        // Hàng 1: Cố định (Navigation & Info)
+        // Hàng 1: Navigation & System Info
         vec![
             KeyboardButton::new(first_btn),
             KeyboardButton::new("Top"),
             KeyboardButton::new("Back"),
         ],
-        // Hàng 2: Menu ngữ cảnh cấp 1
+        // Hàng 2: Trading Core
         vec![
             KeyboardButton::new("Bots"),
             KeyboardButton::new("Positions"),
             KeyboardButton::new("Pending"),
         ],
-        // Hàng 3: Hệ thống / Report
+        // Hàng 3: AI Brain Control
         vec![
-            KeyboardButton::new("ON Autotrade"),
-            KeyboardButton::new("Report"),
-            KeyboardButton::new("OFF Autotrade"),
+            KeyboardButton::new("Agent ON"),
+            KeyboardButton::new("Agent OFF"),
+        ],
+        // Hàng 4: Advanced Reporting
+        vec![
+            KeyboardButton::new("Summary"),
+            KeyboardButton::new("Bot Perf"),
+            KeyboardButton::new("Grouped Pos"),
         ],
     ])
     .resize_keyboard(true)

@@ -61,7 +61,7 @@ The system uses a unified command format prefix with `#`:
 
 ## 5. Current Development State (As of April 13, 2026)
 
-### ✅ Completed
+### [DONE] Completed
 - **Storage Layer:** Robust SQLite implementation with successful migrations.
 - **CLI v2.1.0:** Superior Command Line Interface with dedicated modules:
     - `acc`: Full account lifecycle (add, del, list, toggle autotrade, status).

@@ -8,12 +8,12 @@ use crate::state::AppState;
 /// Risk Monitor chạy mỗi 60 giây kiểm tra P&L của tất cả accounts và bots
 pub async fn run_risk_monitor(state: Arc<AppState>) {
     let mut ticker = interval(Duration::from_secs(60));
-    info!("⚡ Risk Monitor started (interval: 60s)");
+    info!("[SYSTEM] Risk Monitor started (interval: 60s)");
 
     loop {
         ticker.tick().await;
         if let Err(e) = check_risk(&state).await {
-            warn!("⚠️ Risk monitor error: {}", e);
+            warn!("[ERROR] Risk monitor error: {}", e);
         }
     }
 }
@@ -35,7 +35,7 @@ async fn check_risk(state: &Arc<AppState>) -> Result<()> {
     } // lock dropped here
 
     for (acc_id, name, pnl, reason) in triggers {
-        warn!("🛑 Risk Halt | Account: {} ({}) | {}", acc_id, name, reason);
+        warn!("[STOP] Risk Halt | Account: {} ({}) | {}", acc_id, name, reason);
 
         // Disable autotrade
         state.set_all_autotrade(false).await?;
@@ -43,11 +43,11 @@ async fn check_risk(state: &Arc<AppState>) -> Result<()> {
         // Notify Telegram
         if let Some(bot) = &state.telegram_bot {
             let msg = format!(
-                "🚨 *RISK ALERT*\n\n\
+                "[RISK ALERT]\n\n\
                 Account: #{} {}\n\
-                📊 PnL: {:.2}\n\
-                ⚠️ {}\n\n\
-                🔴 Autotrade đã được TẮT tự động.",
+                STATS PnL: {:.2}\n\
+                [INFO] {}\n\n\
+                [OFF] Autotrade has been disabled automatically.",
                 acc_id, name, pnl, reason
             );
             let _ = send_telegram_notify(bot, &state.config.telegram_notify_chat_id, &msg).await;
@@ -68,9 +68,9 @@ pub async fn run_daily_reset(state: Arc<AppState>) {
         let seconds_until_midnight = 86400 - (now.num_seconds_from_midnight() as u64);
         tokio::time::sleep(Duration::from_secs(seconds_until_midnight)).await;
 
-        info!("🔄 Daily reset: Clearing P&L counters...");
+        info!("[RESET] Daily reset: Clearing P&L counters...");
         if let Err(e) = crate::storage::reset_daily_pnl(&state.db).await {
-            warn!("⚠️ Daily reset error: {}", e);
+            warn!("[ERROR] Daily reset error: {}", e);
         } else {
             // Reset in-memory state
             {
@@ -86,7 +86,7 @@ pub async fn run_daily_reset(state: Arc<AppState>) {
                     bot.trade_count_today = 0;
                 }
             }
-            info!("✅ Daily reset complete");
+            info!("[OK] Daily reset complete");
         }
     }
 }

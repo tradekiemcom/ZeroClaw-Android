@@ -8,3 +8,4 @@ pub mod api;
 pub mod risk;
 pub mod engine;
 pub mod cli;
+pub mod agent;

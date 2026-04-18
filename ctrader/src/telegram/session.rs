@@ -47,11 +47,9 @@ impl UserSession {
     /// Format scope badge — hiển thị đầu mọi tin nhắn
     pub fn scope_badge(&self) -> String {
         if self.is_app_scope() {
-            "🌐 *APP SCOPE* — Tất cả tài khoản".to_string()
+            "[GLOBAL] ALL ACCOUNTS SCOPE".to_string()
         } else {
-            let acc_name = self.account_name.as_deref().unwrap_or("Account");
-            let acc_id = self.account_id.unwrap_or(0);
-            format!("💼 *{}* \\[\\#{}\\]", escape_md(acc_name), acc_id)
+            format!("[ACC] {} [#{}]", escape_md(acc_name), acc_id)
         }
     }
 
